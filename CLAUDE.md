@@ -91,49 +91,58 @@ src/
 
   App.tsx
   main.tsx
-  ```
+```
 
 This structure can be adjusted, but do not mix all logic into one large file.
 
 ## Architecture Rules
+
 ### Domain
 
 Domain types should live in:
 
-`src/domain/`
+```txt
+src/domain/
+```
 
 The domain model should not depend on React.
 
 Core domain entities:
 
-Track
-TrackNode
-TransitionEdge
-Project
+- Track
+- TrackNode
+- TransitionEdge
+- Project
 
-## UI
+### UI
 
 UI components should live in:
 
-`src/components/`
+```txt
+src/components/
+```
 
 React components should be small and focused.
 
 Avoid putting audio engine logic directly inside UI components.
 
-Audio
+### Audio
 
 Audio logic should live in:
 
+```txt
 src/audio/
+```
 
 Use Web Audio API only for simple playback and crossfade in the MVP.
 
-## Storage
+### Storage
 
 Project save/load logic should live in:
 
-`src/storage/`
+```txt
+src/storage/
+```
 
 Project data should be serializable as JSON.
 
@@ -172,7 +181,8 @@ Do not implement these unless explicitly requested:
 - social sharing
 - payment features
 - mobile app
-- Implementation Rules
+
+## Implementation Rules
 
 When asked to implement something:
 
@@ -184,11 +194,12 @@ When asked to implement something:
 6. Mention any trade-offs or shortcuts.
 
 ## Code Quality Rules
+
 - Use TypeScript types.
-- Avoid any unless there is a clear reason.
+- Avoid `any` unless there is a clear reason.
 - Avoid large components.
 - Separate domain logic from UI logic.
--  Keep functions small.
+- Keep functions small.
 - Prefer explicit names.
 - Do not hide important behavior in unclear helper functions.
 - Add comments only when they explain non-obvious behavior.
@@ -220,7 +231,7 @@ Follow this order unless instructed otherwise:
 9. Add edge creation.
 10. Add project JSON export/import.
 11. Add simple audio playback.
-12. Add crossfade using 13. TransitionEdge.
+12. Add crossfade using TransitionEdge.
 
 ## Definition of Done for MVP
 
