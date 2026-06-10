@@ -220,3 +220,102 @@ Update the following docs based on these decisions:
 Then proceed to implementation step 1:
 
 - create `src/domain/types.ts`
+
+## 2026-06-10: Node Placement and Edge Defaults
+
+### Context
+
+After reviewing the MVP docs, Claude identified a few remaining ambiguities before implementation.
+
+The most relevant open questions were:
+
+- where newly added nodes should appear on the canvas
+- what default values should be used when creating a new edge
+
+These decisions were clarified before writing application code.
+
+### Decisions
+
+#### 1. Default placement for newly added nodes
+
+When the user clicks "Add to Canvas", the new node will be placed automatically using a simple deterministic rule.
+
+- The first node starts around `x: 120`, `y: 120`.
+- Additional nodes are offset from previous nodes to avoid full overlap.
+- Coordinates are CSS pixels relative to the top-left corner of the canvas.
+
+Example formula:
+
+```ts
+x = 120 + (nodeCount % 5) * 80;
+y = 120 + Math.floor(nodeCount / 5) * 80;
+```
+
+This is an MVP-only behavior.
+
+Advanced layout, zoom-aware placement, center-of-canvas placement, and drag-and-drop placement are deferred.
+
+### 2. Default values for new edges
+
+When a new edge is created, use:
+
+- transitionType: "crossfade"
+- fadeDurationSec: 3
+- note: undefined
+
+If the transition type is changed to `"cut"`, then `fadeDurationSec` should be 0.
+
+For `"fade"` and `"crossfade"`, `fadeDurationSec` should be a positive number.
+
+Deferred
+
+The following are not implemented yet:
+
+- drag-and-drop from track library
+- advanced auto-layout
+- zoom-aware canvas behavior
+- audio file selection
+- real audio playback
+
+## 2026-06-10: Node Placement and Edge Defaults
+
+### Context
+
+Before starting implementation, remaining UI ambiguities were clarified.
+
+The main open questions were:
+
+- where newly added nodes should appear on the canvas
+- what default values should be used when creating a new transition edge
+
+### Decisions
+
+#### 1. Default node placement
+
+When the user clicks "Add to Canvas", the new node is placed using a deterministic MVP rule:
+
+```ts
+x = 120 + (nodeCount % 5) * 80;
+y = 120 + Math.floor(nodeCount / 5) * 80;
+```
+This keeps new nodes from completely overlapping while avoiding advanced layout logic.
+
+Advanced placement, zoom-aware placement, center-of-canvas placement, and drag-and-drop placement are out of scope for the MVP.
+
+### 2. Default edge values
+
+When a new edge is created, use:
+
+- transitionType: "crossfade"
+- fadeDurationSec: 3
+- note: undefined
+
+If transitionType is changed to "cut", set fadeDurationSec to 0.
+
+If transitionType is changed to "fade" or "crossfade" and fadeDurationSec is 0, reset it to 3.
+
+### Result
+
+These decisions were documented in docs/05_ui_requirements.md.
+
+No implementation-blocking ambiguity remains before starting step 1.

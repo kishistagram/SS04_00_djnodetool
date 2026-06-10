@@ -136,6 +136,9 @@ src/audio/
 
 Use Web Audio API only for simple playback and crossfade in the MVP.
 
+Create one `AudioEngine` instance at the app level and pass it to components through props.
+Do not use React Context for the audio engine unless prop drilling becomes unmanageable.
+
 ### Storage
 
 Project save/load logic should live in:
@@ -227,11 +230,14 @@ Follow this order unless instructed otherwise:
 5. Render nodes from mock data.
 6. Render edges from mock data.
 7. Add node selection.
-8. Add drag movement.
-9. Add edge creation.
-10. Add project JSON export/import.
-11. Add simple audio playback.
-12. Add crossfade using TransitionEdge.
+8. Add "Add to Canvas" button in the Track Library.
+9. Add edge creation using the MVP connection flow: select source node → click "Start Connection" → click target node.
+10. Add drag to reposition nodes on the canvas.
+11. Add project JSON export/import.
+12. Add simple audio playback.
+13. Add crossfade using TransitionEdge.
+
+Note: drag-and-drop from Track Library to canvas is not part of the MVP (planned for v0.3 or later).
 
 ## Definition of Done for MVP
 

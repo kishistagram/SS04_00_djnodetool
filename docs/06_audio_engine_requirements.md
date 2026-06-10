@@ -89,6 +89,14 @@ React components should call the audio engine.
 
 They should not own low-level audio behavior.
 
+## Access Pattern
+
+Create one `AudioEngine` instance at the app level (`App.tsx`).
+
+Pass it to components that need it through props.
+
+Do not use React Context for the audio engine unless prop drilling becomes unmanageable.
+
 ## MVP Limitations
 
 Do not implement the following in the first version:
@@ -127,7 +135,7 @@ Immediately stop the first track and start the second track.
 
 ### Fade
 
-Fade out the first track, then start or fade in the second track.
+Fade out the first track completely, then start the second track at full volume.
 
 ### Crossfade
 

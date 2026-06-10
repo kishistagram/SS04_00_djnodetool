@@ -30,6 +30,8 @@ Each track should have:
 
 For the first version, mock tracks are acceptable.
 
+`Project.tracks` serves as the track library for the MVP. There is no separate global library.
+
 ### 2. Canvas
 
 The app should provide a free-form canvas area.
@@ -47,6 +49,11 @@ Each node should display:
 A track node represents the placement of a track on the canvas.
 
 The same track may eventually appear multiple times, but for the first version, one track can correspond to one node.
+
+Implementation staging:
+- v0.1: nodes are rendered from mock data only.
+- v0.2: an "Add to Canvas" button in the Track Library creates new nodes at runtime.
+- v0.3 or later: drag-and-drop from the Track Library to the canvas.
 
 Each node should have:
 
@@ -88,6 +95,8 @@ MVP playback should support:
 - stop playback
 - play from one node to the next connected node
 - apply simple fade or crossfade using fadeDurationSec
+
+The user must select a specific edge to play that transition. The app does not automatically choose which outgoing edge to follow when a node has multiple outgoing edges.
 
 The MVP does not need accurate DJ beat matching.
 

@@ -68,9 +68,9 @@ export type TrackNode = {
 
 - `id` identifies the node, not the track.
 - `trackId` links the node to a Track.
-- `x` and `y` define the node position on the canvas.
-- `label` is what the user sees on the node.
-- `color` can be used later for mood, genre, or user-defined meaning.
+- `x` and `y` are CSS pixel coordinates relative to the top-left corner of the canvas.
+- `label` is what the user sees on the node. In the MVP, it is initialized from `Track.title`. Node renaming is not implemented in the MVP.
+- `color` is assigned automatically in the MVP. User-defined color editing is not implemented in the MVP.
 
 ## TransitionEdge
 
@@ -96,7 +96,7 @@ export type TransitionEdge = {
 - `fromNodeId` is the starting node.
 - `toNodeId` is the destination node.
 - `transitionType` defines how the transition should behave.
-- `fadeDurationSec` is used for fade and crossfade behavior.
+- `fadeDurationSec` is required. For `cut`, use `0` by convention. For `fade` and `crossfade`, use a positive number.
 - `note` can describe why the user connected the tracks.
 
 Examples of notes:
@@ -197,6 +197,12 @@ export const mockProject: Project = {
   ]
 };
 ```
+
+## ID Generation
+
+IDs in mock data use human-readable strings such as `"track-001"`.
+
+IDs created at runtime use `crypto.randomUUID()`.
 
 ## Design Rules
 
