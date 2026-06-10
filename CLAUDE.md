@@ -196,6 +196,47 @@ When asked to implement something:
 5. Explain the changed files after implementation.
 6. Mention any trade-offs or shortcuts.
 
+## Pull Request Description Rules
+
+When creating a pull request description, always include a `User Prompt` section.
+
+The `User Prompt` section should summarize the user's original request that led to the change.
+
+Rules:
+
+* Consolidate requests across multiple conversation turns when needed.
+* Preserve the user's intent accurately.
+* Do not add requirements that the user did not ask for.
+* Do not include unnecessary chat logs, emotional context, or unrelated discussion.
+* Do not include sensitive personal information unless it is directly necessary for the implementation.
+* If there are multiple distinct requests, list them as bullet points.
+* If the implementation intentionally does not cover part of the request, mention that in the PR description.
+
+Recommended PR description structure:
+
+```md
+## User Prompt
+
+- Summarize the user's request here.
+
+## Summary
+
+- Summarize what changed in this PR.
+
+## Changes
+
+- List the main files or features changed.
+
+## Out of Scope
+
+- List anything intentionally not implemented.
+
+## Testing
+
+- Describe how the change was tested.
+```
+
+
 ## Code Quality Rules
 
 - Use TypeScript types.
