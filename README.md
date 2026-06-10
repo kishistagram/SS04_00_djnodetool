@@ -1,235 +1,88 @@
-# CLAUDE.md
+# NodeMix Canvas
 
-## Project
+A node-based music arrangement and DJ prototype.
 
-This project is called NodeMix Canvas.
+Instead of a vertical playlist, users place tracks as nodes on a free-form canvas, connect them with transition edges, and play simple crossfades between connected tracks.
 
-It is a node-based music arrangement and DJ prototype.
+> **Status:** MVP in progress. No application code exists yet. Design documentation is being finalized.
 
-The goal is to let users place tracks on a free-form canvas, connect them with transition edges, and play simple transitions between connected tracks.
+---
 
-## Important Instruction
+## Concept
 
-Before writing code, always read the files in the `docs/` directory.
+Most music tools organize tracks as a list. NodeMix Canvas treats music as a graph.
 
-Start with:
+Each track is a node. Each connection is a transition. The canvas becomes a visual map of how tracks relate to each other — by mood, memory, genre, tempo, or personal association.
 
-- `docs/00_product_vision.md`
-- `docs/02_mvp_scope.md`
-- `docs/04_domain_model.md`
-- `docs/06_audio_engine_requirements.md`
-
-Some docs may contain only TODO placeholders. Treat those as intentionally unfinished.
-
-For now, use these files as the source of truth:
-
-- `docs/00_product_vision.md`
-- `docs/02_mvp_scope.md`
-- `docs/04_domain_model.md`
-- `docs/06_audio_engine_requirements.md`
-- `CLAUDE.md`
-
-Do not invent requirements from unfinished TODO files.
-
-After reading the docs, summarize your understanding before making major implementation changes.
-
-## Development Philosophy
-
-Prioritize:
-
-- small steps
-- readable code
-- clear architecture
-- understandable implementation
-- explicit data structures
-- maintainability
-- learning value
-
-Do not prioritize:
-
-- feature quantity
-- visual polish too early
-- unnecessary libraries
-- premature backend work
-- complex AI behavior
-- streaming service integration
-
-## Technical Direction
-
-Use:
-
-- React
-- TypeScript
-- frontend-only architecture for MVP
-- local mock data
-- local JSON save/load
-- Web Audio API for simple playback
-
-Do not add a backend unless explicitly requested.
-
-## Suggested Directory Structure
-
-```txt
-src/
-  domain/
-    types.ts
-    mockProject.ts
-
-  audio/
-    audioEngine.ts
-
-  components/
-    TrackLibrary.tsx
-    NodeCanvas.tsx
-    TrackNode.tsx
-    EdgeView.tsx
-    PlayerControls.tsx
-    InspectorPanel.tsx
-
-  storage/
-    projectStorage.ts
-
-  App.tsx
-  main.tsx
-  ```
-
-This structure can be adjusted, but do not mix all logic into one large file.
-
-## Architecture Rules
-### Domain
-
-Domain types should live in:
-
-`src/domain/`
-
-The domain model should not depend on React.
-
-Core domain entities:
-
-Track
-TrackNode
-TransitionEdge
-Project
-
-## UI
-
-UI components should live in:
-
-`src/components/`
-
-React components should be small and focused.
-
-Avoid putting audio engine logic directly inside UI components.
-
-Audio
-
-Audio logic should live in:
-
-src/audio/
-
-Use Web Audio API only for simple playback and crossfade in the MVP.
-
-## Storage
-
-Project save/load logic should live in:
-
-`src/storage/`
-
-Project data should be serializable as JSON.
+---
 
 ## MVP Features
 
-Build only these features first:
+- Track library panel showing available tracks
+- Free-form canvas with track nodes
+- Directed transition edges between nodes
+- Simple playback: play a track, play a transition
+- Crossfade using Web Audio API
+- Project save and load as JSON
 
-- Track library
-- Canvas display
-- Track nodes
-- Transition edges
-- Node selection
-- Simple project JSON save/load
-- Simple playback
-- Simple crossfade
+---
 
-## Out of Scope for MVP
+## Tech Stack
 
-Do not implement these unless explicitly requested:
+| Layer | Technology |
+|---|---|
+| UI | React + TypeScript |
+| Audio | Web Audio API |
+| Storage | JSON (browser download / file picker) |
+| Backend | None (frontend-only MVP) |
 
-- Spotify integration
-- Suno integration
-- Apple Music integration
-- YouTube integration
-- backend server
-- authentication
-- cloud sync
-- database
-- AI editing
-- natural language editing
-- BPM auto-detection
-- beat matching
-- pitch shifting
-- time stretching
-- waveform editor
-- social sharing
-- payment features
-- mobile app
-- Implementation Rules
+---
 
-When asked to implement something:
+## Project Structure
 
-1. State what you will change.
-2. Keep the change small.
-3. Do not modify unrelated files.
-4. Do not add features outside the request.
-5. Explain the changed files after implementation.
-6. Mention any trade-offs or shortcuts.
+```
+src/
+  domain/       — Track, TrackNode, TransitionEdge, Project types and mock data
+  audio/        — Web Audio API engine
+  components/   — React UI components
+  storage/      — JSON export and import
+  App.tsx
+  main.tsx
 
-## Code Quality Rules
-- Use TypeScript types.
-- Avoid any unless there is a clear reason.
-- Avoid large components.
-- Separate domain logic from UI logic.
--  Keep functions small.
-- Prefer explicit names.
-- Do not hide important behavior in unclear helper functions.
-- Add comments only when they explain non-obvious behavior.
+docs/           — Design documents
+docs/plans/     — Approved implementation plans
+```
 
-## AI Behavior Rules
+---
 
-Do not make large architectural changes without explaining them first.
+## Documentation
 
-Do not replace the project structure without permission.
+| File | Description |
+|---|---|
+| [docs/00_product_vision.md](docs/00_product_vision.md) | Product vision and principles |
+| [docs/02_mvp_scope.md](docs/02_mvp_scope.md) | MVP feature scope and success criteria |
+| [docs/04_domain_model.md](docs/04_domain_model.md) | Core domain types with TypeScript definitions |
+| [docs/05_ui_requirements.md](docs/05_ui_requirements.md) | UI layout, interactions, and edge creation flow |
+| [docs/06_audio_engine_requirements.md](docs/06_audio_engine_requirements.md) | Audio engine API and transition behavior |
+| [docs/07_project_storage.md](docs/07_project_storage.md) | JSON save and load format |
+| [docs/11_development_workflow.md](docs/11_development_workflow.md) | Development workflow for working with Claude Code |
 
-Do not add new major dependencies without explaining why.
+---
 
-Do not implement future features just because they seem useful.
+## Development Workflow
 
-If the request is ambiguous, choose the smallest reasonable implementation and explain the assumption.
+This project uses a structured workflow with Claude Code:
 
-## First Implementation Order
+1. **Explore** — read relevant docs and source files, summarize the current state
+2. **Plan** — propose an implementation plan and wait for approval
+3. **Code** — implement only the approved plan in small steps
+4. **Review** — summarize what changed and how it was tested
+5. **Commit** — use Conventional Commits style
 
-Follow this order unless instructed otherwise:
+See [docs/11_development_workflow.md](docs/11_development_workflow.md) for details.
 
-1. Create domain types.
-2. Create mock project data.
-3. Render a static track library.
-4. Render a static canvas.
-5. Render nodes from mock data.
-6. Render edges from mock data.
-7. Add node selection.
-8. Add drag movement.
-9. Add edge creation.
-10. Add project JSON export/import.
-11. Add simple audio playback.
-12. Add crossfade using 13. TransitionEdge.
+---
 
-## Definition of Done for MVP
+## License
 
-The MVP is complete when:
-
-- A user can see tracks in a library.
-- A user can see tracks as nodes on a canvas.
-- A user can connect nodes.
-- A user can define a simple transition.
-- A user can play a basic transition.
-- A user can save and load the project as JSON.
-- The code structure is understandable.
+See [LICENSE](LICENSE).
