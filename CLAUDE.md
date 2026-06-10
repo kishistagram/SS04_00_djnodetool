@@ -185,6 +185,21 @@ Do not implement these unless explicitly requested:
 - payment features
 - mobile app
 
+## Documentation Priority
+
+Use the following priority when reading project documentation:
+
+1. `CLAUDE.md`
+2. Product and implementation docs under `docs/`
+3. Approved implementation plans under `docs/plans/`
+4. Decision logs
+
+Files under `docs/learning/` are personal learning notes for the human developer.
+
+Do not treat `docs/learning/` as product requirements, implementation requirements, or source-of-truth documentation.
+
+Only read or refer to `docs/learning/` when explicitly asked to explain concepts, summarize learning notes, or help the human developer study.
+
 ## Implementation Rules
 
 When asked to implement something:
