@@ -319,3 +319,63 @@ If transitionType is changed to "fade" or "crossfade" and fadeDurationSec is 0, 
 These decisions were documented in docs/05_ui_requirements.md.
 
 No implementation-blocking ambiguity remains before starting step 1.
+
+## 2026-06-11: Phase 1 Implementation Decisions
+
+### Context
+
+Phase 1 implemented the domain data layer (`src/domain/types.ts` and
+`src/domain/mockProject.ts`). A few small decisions were made while turning
+the `docs/04_domain_model.md` definitions into actual files.
+
+### Decisions
+
+#### 1. Split types and mock data into two files
+
+Decision:
+
+* Put type definitions in `src/domain/types.ts`.
+* Put the sample project in `src/domain/mockProject.ts`.
+
+Reason:
+
+This matches the suggested directory structure in `CLAUDE.md` and keeps
+the type definitions separate from sample data, so mock data can change
+without touching the types.
+
+#### 2. Import the Project type with `import type`
+
+Decision:
+
+`mockProject.ts` uses `import type { Project } from "./types"`.
+
+Reason:
+
+The import is only needed for type-checking, not at runtime. Using
+`import type` makes that intent explicit and keeps the domain layer free
+of unnecessary runtime imports.
+
+#### 3. Do not modify the UI in Phase 1
+
+Decision:
+
+`src/App.tsx` was left unchanged. The mock data is exported but not yet
+rendered.
+
+Reason:
+
+Phase 1 is strictly the data layer. Keeping the change small makes it easy
+to review and avoids mixing data-model work with UI work. Rendering begins
+in the next phase.
+
+#### 4. Copy mock data verbatim from the domain model doc
+
+Decision:
+
+The contents of `mockProject` (tracks, nodes, edge) were taken directly
+from the Example Project in `docs/04_domain_model.md` rather than invented.
+
+Reason:
+
+`CLAUDE.md` instructs not to invent requirements. The doc already provides
+an agreed-upon sample, so reusing it keeps a single source of truth.
