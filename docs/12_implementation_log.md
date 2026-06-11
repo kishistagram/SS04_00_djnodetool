@@ -426,3 +426,63 @@ Results:
 There is no way to remove a node yet. Node deletion is implemented next in
 Phase 4.5 ("Delete selected node"), which adds a Delete button to the Inspector
 Panel and also removes edges connected to the deleted node.
+
+## 2026-06-11: Phase 4.5 - Delete selected node
+
+### Summary
+
+Phase 4.5 added node deletion, the follow-up noted at the end of Phase 4. The
+Inspector Panel now shows a "Delete node" button when a node is selected.
+Clicking it removes the node (and any edges connected to it) from the project
+and clears the selection.
+
+### Files Modified
+
+* `src/App.tsx` - added `handleDeleteNode(nodeId)` which filters the node out
+  of `project.nodes` and filters out edges whose `fromNodeId`/`toNodeId` match
+  the deleted node, then sets `selectedNodeId` to null. Passed `onDeleteNode`
+  to the Inspector.
+* `src/components/InspectorPanel.tsx` - added the `onDeleteNode` prop and a
+  "Delete node" button rendered only in the branch where a node is selected.
+* `src/index.css` - styling for `.delete-node-button` (a low-key red).
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts` - the edge field names (`fromNodeId`, `toNodeId`) were
+  confirmed here before writing the edge cleanup; no type changes were needed.
+* `src/components/NodeCanvas.tsx`, `TrackNode.tsx`, `TrackLibrary.tsx` - they
+  render from props and update automatically when the project changes.
+
+### State and Data Flow
+
+* `App` owns `project` and `selectedNodeId`.
+* The Inspector calls `onDeleteNode(node.id)`.
+* `handleDeleteNode` updates the project immutably (filter nodes + filter
+  edges) and clears the selection, so the Inspector falls back to its
+  "Select a node" placeholder and the canvas re-renders without the node.
+
+### Out of Scope (deferred to later phases)
+
+* Delete / Backspace keyboard shortcut.
+* Drag-to-trash deletion.
+* Confirmation dialog before deleting.
+* Drag to reposition, edge creation, import/export, audio, crossfade.
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors)
+* `npm run lint`: passed (no warnings, no errors)
+* `npm run dev`: verified in the browser:
+  - The Delete button appears only when a node is selected.
+  - Clicking it removes the node from the canvas and clears the Inspector back
+    to "Select a node".
+  - Deleting node-001 (which has a connected edge in the mock data) also
+    removes that edge; no dangling edge remains.
