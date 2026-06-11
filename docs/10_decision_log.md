@@ -442,3 +442,79 @@ Reason:
 Phase 2 is pure static rendering. State belongs with selection (Phase 3),
 where it is actually needed. Keeping it out now makes the rendering layer
 simple to read.
+
+## 2026-06-11: Phase 3 Implementation Decisions
+
+### Context
+
+Phase 3 added node selection and the Inspector Panel. The work was scoped
+to node selection only (option A). A few small decisions were made while
+introducing the first React state.
+
+### Decisions
+
+#### 1. Node selection only (option A)
+
+Decision:
+
+Implement node selection and a read-only node Inspector. Do not implement
+edge selection, the editable edge inspector, edge editing, node dragging,
+or the "Start Connection" button.
+
+Reason:
+
+This keeps the change small and matches the branch scope. The edge
+inspector is an editable form (transitionType, fadeDurationSec, note) and
+is naturally its own step. Selection alone is enough to introduce React
+state cleanly.
+
+#### 2. Selection state lives in App
+
+Decision:
+
+`selectedNodeId: string | null` is held in `App` with `useState` and
+passed down through props (`selectedNodeId`, `onSelectNode`, `onDeselect`).
+
+Reason:
+
+`App` is the common parent of the canvas (which changes the selection) and
+the inspector (which reads it). Per `CLAUDE.md`, props are preferred over
+React Context until prop drilling becomes unmanageable, which it has not.
+
+#### 3. Store only the id, not the node object
+
+Decision:
+
+State stores `selectedNodeId` (a string), not the selected node object.
+Components look the node up by id.
+
+Reason:
+
+The id is the stable source of truth. Storing only the id avoids keeping a
+duplicate copy of node data in state that could drift from the project
+data, which matters once nodes become editable in later phases.
+
+#### 4. Stop click propagation on the node
+
+Decision:
+
+A node's click handler calls `event.stopPropagation()` before selecting.
+
+Reason:
+
+The canvas background has a click handler that deselects. Without stopping
+propagation, a node click would bubble to the canvas and immediately
+deselect the node. Stopping propagation lets node clicks select and
+background clicks deselect, exactly as the selection model requires.
+
+#### 5. Inspector fields are read-only
+
+Decision:
+
+The Inspector shows label, track, artist, position, and color as
+read-only text. The "Start Connection" button is not included yet.
+
+Reason:
+
+The MVP decision log already states node rename and color editing are out
+of scope, and "Start Connection" belongs to edge creation (Phase 5).
