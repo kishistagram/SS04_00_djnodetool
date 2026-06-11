@@ -194,3 +194,82 @@ the next phase.
 
 The next implementation step is to render a static Track Library and a
 static Canvas from this mock data.
+
+
+## 2026-06-11: Phase 2 - Static Track Library and Canvas
+
+### Summary
+
+Phase 2 rendered the mock project data on screen for the first time.
+
+The app now shows a two-column layout: a Track Library on the left and a
+Node Canvas on the right. The canvas displays track nodes positioned by
+their x/y coordinates and the transition edge connecting them.
+
+This phase is static rendering only. There is no selection, dragging,
+edge creation, audio, or storage. No React state is used.
+
+### Files Created
+
+* `src/components/canvasLayout.ts` (shared NODE_WIDTH / NODE_HEIGHT)
+* `src/components/TrackLibrary.tsx`
+* `src/components/TrackNode.tsx`
+* `src/components/EdgeView.tsx`
+* `src/components/NodeCanvas.tsx`
+
+### Files Modified
+
+* `src/App.tsx` (imports mockProject, sets up the two-column layout)
+* `src/index.css` (minimal layout styles for the panels, canvas, nodes, edges)
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts`, `src/domain/mockProject.ts` (data layer unchanged)
+* `CLAUDE.md`, `README.md`, `LICENSE`, `.gitignore`, `.github/`
+
+### What Was Implemented
+
+* `TrackLibrary` renders every track in `Project.tracks` with title,
+  artist (if available), and BPM (if available). No "Add to Canvas" button.
+* `TrackNode` renders one node as an absolutely positioned card using the
+  node's x/y and a fixed size; the border uses `node.color`. It shows the
+  node label and the linked track's artist.
+* `EdgeView` renders one edge as an SVG line from the source node center
+  to the target node center, with an arrowhead marker for direction.
+* `NodeCanvas` renders the SVG edge layer behind and the node cards on top.
+  Edges look up their from/to nodes by id; nodes look up their track by id.
+* `App` owns `mockProject` and passes data down through plain props.
+
+### Out of Scope (deferred to later phases)
+
+* Node selection and click handling (Phase 3)
+* "Add to Canvas" button (Phase 4)
+* Edge creation / connection mode (Phase 5)
+* Node dragging (Phase 6)
+* Inspector Panel and Player Controls
+* Audio and storage
+
+### Verification
+
+```bash
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run dev     # visual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (22 modules, 0 errors)
+* `npm run lint`: passed (no warnings, no errors)
+* `npm run dev`: rendered correctly. Both tracks appear in the library;
+  both nodes appear on the canvas at their coordinates with their colors;
+  the edge connects Night Drive -> Blue Memory with an arrowhead.
+
+### Notes
+
+Node size is fixed (140x60) via `canvasLayout.ts` so the edge geometry can
+compute node centers. This is an MVP simplification; variable node sizes
+are not needed yet.
+
+The next implementation step is node selection (Phase 3), which will
+introduce the first React state and the Inspector Panel.
