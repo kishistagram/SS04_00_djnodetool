@@ -379,3 +379,66 @@ Reason:
 
 `CLAUDE.md` instructs not to invent requirements. The doc already provides
 an agreed-upon sample, so reusing it keeps a single source of truth.
+
+## 2026-06-11: Phase 2 Implementation Decisions
+
+### Context
+
+Phase 2 rendered the Track Library and Node Canvas statically from
+`mockProject`. A few small decisions were made while building the first
+UI components.
+
+### Decisions
+
+#### 1. Render only Library + Canvas (no Inspector/Player placeholders)
+
+Decision:
+
+Phase 2 renders only the Track Library and Node Canvas. The Inspector
+Panel and Player Controls regions are not added yet, not even as empty
+placeholders.
+
+Reason:
+
+This keeps the change minimal and focused on "data to pixels". The full
+four-region layout will come as those regions get real behavior.
+
+#### 2. Fixed node size via a shared constants file
+
+Decision:
+
+Node size is fixed at 140x60, defined in `src/components/canvasLayout.ts`
+and shared by `TrackNode` (rendering) and `EdgeView` (line geometry).
+
+Reason:
+
+Edges need to compute node centers to draw lines. A shared constant keeps
+the rendered card and the edge math in sync without measuring the DOM.
+Variable node sizes are unnecessary for the MVP.
+
+#### 3. Edges as an SVG layer behind the nodes
+
+Decision:
+
+Edges are drawn in a single SVG layer positioned absolutely behind the
+node cards, using a line from source-center to target-center plus a shared
+arrowhead marker for direction. The SVG layer uses `pointer-events: none`.
+
+Reason:
+
+SVG is the simplest way to draw directional lines and arrowheads. Putting
+it behind the nodes keeps the cards readable, and disabling pointer events
+ensures it will not interfere with node interactions in later phases.
+
+#### 4. No React state in Phase 2
+
+Decision:
+
+Data flows from `App` down through plain props. No `useState` or event
+handlers are introduced.
+
+Reason:
+
+Phase 2 is pure static rendering. State belongs with selection (Phase 3),
+where it is actually needed. Keeping it out now makes the rendering layer
+simple to read.
