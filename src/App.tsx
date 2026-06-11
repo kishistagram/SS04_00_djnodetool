@@ -5,7 +5,10 @@
 // Phase 4: "Add to Canvas". The project is now held in useState (seeded with
 // mockProject) so it can change at runtime. Clicking "Add to Canvas" on a
 // track creates a new node, appends it to the project, and selects it.
-// Dragging, edge creation, and import/export are not part of this phase.
+//
+// Phase 4.5: "Delete selected node". The Inspector's Delete button removes the
+// selected node (and any edges connected to it) and clears the selection.
+// Dragging, edge creation, and import/export are not part of these phases.
 
 import { useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
@@ -50,6 +53,19 @@ function App() {
     setSelectedNodeId(newNode.id);
   }
 
+  // Delete a node and any edges connected to it, then clear the selection.
+  function handleDeleteNode(nodeId: string) {
+    setProject((current) => ({
+      ...current,
+      nodes: current.nodes.filter((node) => node.id !== nodeId),
+      // Remove edges touching the deleted node so no edge dangles.
+      edges: current.edges.filter(
+        (edge) => edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId,
+      ),
+    }));
+    setSelectedNodeId(null);
+  }
+
   return (
     <div className="app-layout">
       <div className="left-column">
@@ -61,6 +77,7 @@ function App() {
           tracks={project.tracks}
           nodes={project.nodes}
           selectedNodeId={selectedNodeId}
+          onDeleteNode={handleDeleteNode}
         />
       </div>
       <NodeCanvas

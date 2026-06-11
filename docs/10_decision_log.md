@@ -610,3 +610,67 @@ and the fixed offset keeps duplicates visually distinct.
   selected but not removed. Deletion is handled separately in Phase 4.5
   ("Delete selected node"), which also removes any edges connected to the
   deleted node.
+
+## 2026-06-11: Phase 4.5 Implementation Decisions
+
+### Context
+
+Phase 4.5 added node deletion, the follow-up flagged at the end of Phase 4.
+It is a small, separate phase so the history stays "1 phase = 1 PR" and the
+delete logic does not mix into the Add to Canvas change.
+
+### Decisions
+
+#### 1. Delete UI lives in the Inspector Panel
+
+Decision:
+
+The first delete affordance is a "Delete node" button in the Inspector Panel,
+shown only when a node is selected.
+
+Reason:
+
+The Inspector already represents "the currently selected node", so it is the
+natural home for actions on that node. Showing the button only when a node is
+selected keeps the UI honest: there is nothing to delete otherwise.
+
+#### 2. Deleting a node also deletes its connected edges
+
+Decision:
+
+`handleDeleteNode` removes the node from `project.nodes` and also removes any
+edge whose `fromNodeId` or `toNodeId` equals the deleted node id.
+
+Reason:
+
+An edge that points at a missing node is invalid data (a dangling edge). There
+are no edge-creation features yet, but mock data already contains an edge, and
+future phases add more. Cleaning up edges here keeps the project always
+consistent and avoids a class of bugs later. The field names `fromNodeId` /
+`toNodeId` were taken directly from the `TransitionEdge` type in `types.ts`,
+not assumed.
+
+#### 3. Clear the selection after delete
+
+Decision:
+
+After deleting, `selectedNodeId` is set to `null`.
+
+Reason:
+
+The selected node no longer exists, so keeping its id selected would point at
+nothing. Clearing the selection returns the Inspector to its "Select a node"
+placeholder, which is the correct empty state.
+
+#### 4. No keyboard, no drag-to-trash, no confirm dialog (yet)
+
+Decision:
+
+Delete/Backspace key support, drag-to-trash, and a confirmation dialog are not
+included.
+
+Reason:
+
+The goal is the smallest correct delete. A button is enough to prove the data
+flow. Keyboard shortcuts and confirmation are UX refinements that can be added
+later if they prove necessary; adding them now would widen the scope.

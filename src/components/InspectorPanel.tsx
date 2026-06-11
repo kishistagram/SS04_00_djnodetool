@@ -2,8 +2,11 @@
 //
 // Phase 3: node selection only. It finds the selected node by id and
 // displays its label, linked track title/artist, position, and color.
-// When nothing is selected it shows a placeholder. Edge inspection,
-// editing, and the "Start Connection" button are not part of this phase.
+// When nothing is selected it shows a placeholder.
+//
+// Phase 4.5: a Delete button is shown only when a node is selected. Clicking
+// it asks the parent (App) to delete that node via onDeleteNode. The fields
+// themselves stay read-only; edge inspection and editing are still out of scope.
 
 import type { Track, TrackNode } from "../domain/types";
 
@@ -11,9 +14,15 @@ type InspectorPanelProps = {
   tracks: Track[];
   nodes: TrackNode[];
   selectedNodeId: string | null;
+  onDeleteNode: (nodeId: string) => void;
 };
 
-function InspectorPanel({ tracks, nodes, selectedNodeId }: InspectorPanelProps) {
+function InspectorPanel({
+  tracks,
+  nodes,
+  selectedNodeId,
+  onDeleteNode,
+}: InspectorPanelProps) {
   const node = nodes.find((n) => n.id === selectedNodeId);
 
   if (!node) {
@@ -60,6 +69,14 @@ function InspectorPanel({ tracks, nodes, selectedNodeId }: InspectorPanelProps) 
           )}
         </dd>
       </dl>
+
+      <button
+        type="button"
+        className="delete-node-button"
+        onClick={() => onDeleteNode(node.id)}
+      >
+        Delete node
+      </button>
     </section>
   );
 }
