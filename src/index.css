@@ -293,7 +293,13 @@ code {
   border: 2px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);
-  cursor: pointer;
+  cursor: grab;
+  /* Avoid selecting the label text while dragging the node. */
+  user-select: none;
+}
+
+.track-node:active {
+  cursor: grabbing;
 }
 
 .track-node.selected {

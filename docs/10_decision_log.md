@@ -674,3 +674,104 @@ Reason:
 The goal is the smallest correct delete. A button is enough to prove the data
 flow. Keyboard shortcuts and confirmation are UX refinements that can be added
 later if they prove necessary; adding them now would widen the scope.
+
+## 2026-06-11: Phase 5 Implementation Decisions
+
+### Context
+
+Phase 5 added node dragging on the canvas. A node can be dragged to a new
+position, and its x/y is written back into the project. The scope was dragging
+only (no edge creation, import/export, audio, or crossfade).
+
+### Decisions
+
+#### 1. Native mouse events, no drag-and-drop library
+
+Decision:
+
+Use native `mousedown` / `mousemove` / `mouseup` events. Do not add a
+drag-and-drop library.
+
+Reason:
+
+The MVP favors readable code and no unnecessary libraries. The interaction is
+small enough to implement directly: select on mousedown, update x/y on
+mousemove, stop on mouseup. The move/up listeners are attached to `window` so a
+fast drag that leaves the node still tracks the pointer.
+
+#### 2. Update the project on every mousemove (option 1)
+
+Decision:
+
+Each `mousemove` calls `onMoveNode`, which immutably replaces the dragged
+node's x/y in `project.nodes` via `map`.
+
+Reason:
+
+This keeps a single source of truth (the project) and makes edges follow for
+free. With only a handful of nodes, updating state per move is simple and fast
+enough. A separate "drag buffer" state would be a premature optimization and
+would duplicate the position.
+
+#### 3. mousedown selects the node
+
+Decision:
+
+`mousedown` selects the node before starting the drag.
+
+Reason:
+
+Selecting on mousedown means starting a drag also selects, which matches user
+expectation and keeps the Phase 3 selection behavior intact. It also lets the
+Inspector show the node being moved.
+
+#### 4. Suppress the click that follows a real drag
+
+Decision:
+
+A `didDrag` ref is set on the first mousemove. The subsequent `click` is
+ignored when `didDrag` is true.
+
+Reason:
+
+The browser fires a `click` after `mouseup`. Without this guard, a drag would
+also run the click's select logic. Selection already happened on mousedown, so
+the trailing click should do nothing after a real drag. A plain click (no
+movement) still selects normally.
+
+#### 5. NodeCanvas owns the canvas ref
+
+Decision:
+
+`NodeCanvas` holds the canvas element via `useRef` and passes it to each
+`TrackNode`. Nodes convert mouse coordinates to canvas space using
+`getBoundingClientRect()` on that ref.
+
+Reason:
+
+Nodes must not query the DOM themselves (e.g. `document.querySelector`). Passing
+the ref keeps ownership clear and the components decoupled from the DOM
+structure.
+
+#### 6. No coordinate clamping
+
+Decision:
+
+A node can be dragged anywhere, including negative or off-screen coordinates.
+
+Reason:
+
+Clamping to the canvas bounds is out of scope for the MVP. Allowing free
+positions keeps the logic minimal; bounds handling can be added later if needed.
+
+#### 7. EdgeView is unchanged
+
+Decision:
+
+`EdgeView` is not modified. Edges follow moved nodes automatically.
+
+Reason:
+
+`EdgeView` already derives its line endpoints from each node's x/y (center of
+the fixed-size node). Updating a node's x/y is enough for connected edges to
+re-render in the new position.
