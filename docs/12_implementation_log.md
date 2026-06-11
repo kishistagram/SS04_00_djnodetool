@@ -273,3 +273,89 @@ are not needed yet.
 
 The next implementation step is node selection (Phase 3), which will
 introduce the first React state and the Inspector Panel.
+
+
+## 2026-06-11: Phase 3 - Node Selection and Inspector Panel
+
+### Summary
+
+Phase 3 made the canvas interactive for the first time. Clicking a node
+selects it (shown with a highlight); clicking the empty canvas background
+deselects. The Inspector Panel on the left shows read-only details of the
+selected node.
+
+This phase introduced the first React state (`useState`) in the project.
+Scope was node selection only (option A): edge selection, edge inspection,
+edge editing, node dragging, and the "Start Connection" button were not
+implemented.
+
+### Files Created
+
+* `src/components/InspectorPanel.tsx`
+
+### Files Modified
+
+* `src/App.tsx` (holds `selectedNodeId` state; lays out the left column
+  with TrackLibrary + InspectorPanel; passes selection props down)
+* `src/components/NodeCanvas.tsx` (node click selects; empty canvas click
+  deselects; passes `isSelected` / `onSelect` to each node)
+* `src/components/TrackNode.tsx` (accepts `isSelected` / `onSelect`; adds
+  the selected highlight; stops click propagation so selecting a node does
+  not also trigger the canvas deselect)
+* `src/index.css` (left-column layout, selected-node highlight, inspector
+  panel styles)
+
+### Files Intentionally Not Modified
+
+* `src/domain/*` (data layer unchanged)
+* `src/components/EdgeView.tsx` (edges are not selectable in this phase)
+* `CLAUDE.md`, `README.md`, `LICENSE`, `.gitignore`, `.github/`
+
+### State and Data Flow
+
+* `selectedNodeId: string | null` lives in `App` via `useState`.
+* `App` passes `selectedNodeId`, `onSelectNode`, and `onDeselect` to
+  `NodeCanvas`, and `selectedNodeId` to `InspectorPanel`.
+* `NodeCanvas` calls `onSelectNode(node.id)` on a node click and
+  `onDeselect()` on a background click.
+* `TrackNode` calls `event.stopPropagation()` then `onSelect()` so its
+  click does not bubble up to the canvas deselect handler.
+* `InspectorPanel` finds the node by id and renders read-only fields, or a
+  "Select a node" placeholder when nothing is selected.
+
+### Out of Scope (deferred to later phases)
+
+* Edge selection and the editable edge inspector form
+* "Start Connection" button / edge creation (Phase 5)
+* Node dragging (Phase 6)
+* Node rename and color editing (read-only in the MVP)
+* Player Controls, audio, and storage
+
+### Verification
+
+```bash
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (23 modules, 0 errors)
+* `npm run lint`: passed (no warnings, no errors)
+* `npm run dev`: verified in the browser:
+  - Clicking a node highlights it and fills the Inspector (label, track,
+    artist, position, color).
+  - Clicking the empty canvas clears the selection and the Inspector shows
+    "Select a node".
+  - Clicking a different node switches the selection cleanly (the node
+    click does not bubble to the canvas deselect).
+
+### Notes
+
+The inspector shows position and color as read-only, matching the MVP
+decision that node rename and color editing are out of scope.
+
+The next implementation step is the "Add to Canvas" button (Phase 4),
+which will create new nodes at runtime and require the project's nodes to
+become state rather than fixed mock data.

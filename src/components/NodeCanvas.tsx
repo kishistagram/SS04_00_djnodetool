@@ -1,9 +1,10 @@
 // NodeCanvas renders the free-form canvas area: all transition edges in
 // an SVG layer behind, and all track nodes on top.
 //
-// Phase 2: static display only. There is no selection, dragging, or edge
-// creation. Edges look up their from/to nodes by id; nodes look up their
-// linked track by id (to show the artist).
+// Phase 3: node selection. Clicking a node selects it (via onSelectNode);
+// clicking the empty canvas background deselects (via onDeselect). Edges
+// look up their from/to nodes by id; nodes look up their linked track by
+// id (to show the artist).
 
 import type { Track, TrackNode as TrackNodeType, TransitionEdge } from "../domain/types";
 import TrackNode from "./TrackNode";
@@ -13,16 +14,26 @@ type NodeCanvasProps = {
   tracks: Track[];
   nodes: TrackNodeType[];
   edges: TransitionEdge[];
+  selectedNodeId: string | null;
+  onSelectNode: (id: string) => void;
+  onDeselect: () => void;
 };
 
 const ARROW_MARKER_ID = "edge-arrowhead";
 
-function NodeCanvas({ tracks, nodes, edges }: NodeCanvasProps) {
+function NodeCanvas({
+  tracks,
+  nodes,
+  edges,
+  selectedNodeId,
+  onSelectNode,
+  onDeselect,
+}: NodeCanvasProps) {
   const findNode = (id: string) => nodes.find((node) => node.id === id);
   const findTrack = (id: string) => tracks.find((track) => track.id === id);
 
   return (
-    <main className="node-canvas">
+    <main className="node-canvas" onClick={onDeselect}>
       <svg className="edge-layer">
         <defs>
           <marker
@@ -56,6 +67,8 @@ function NodeCanvas({ tracks, nodes, edges }: NodeCanvasProps) {
           key={node.id}
           node={node}
           track={findTrack(node.trackId)}
+          isSelected={node.id === selectedNodeId}
+          onSelect={() => onSelectNode(node.id)}
         />
       ))}
     </main>

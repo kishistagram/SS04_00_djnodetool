@@ -124,11 +124,18 @@ code {
   min-height: 100svh;
 }
 
-/* Track Library (left panel) */
-.track-library {
+/* Left column: Track Library (top) + Inspector Panel (bottom) */
+.left-column {
   width: 260px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.track-library {
+  flex: 1;
   padding: 16px;
   box-sizing: border-box;
   overflow-y: auto;
@@ -192,6 +199,56 @@ code {
   fill: var(--text);
 }
 
+/* Inspector Panel (left column, bottom half) */
+.inspector-panel {
+  flex-shrink: 0;
+  max-height: 50%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.inspector-panel h2 {
+  margin-bottom: 12px;
+}
+
+.inspector-placeholder {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.inspector-fields {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  font-size: 14px;
+}
+
+.inspector-fields dt {
+  color: var(--text);
+}
+
+.inspector-fields dd {
+  margin: 0;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.inspector-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
 /* Track node card */
 .track-node {
   position: absolute;
@@ -205,6 +262,12 @@ code {
   border: 2px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.track-node.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .track-node-label {
