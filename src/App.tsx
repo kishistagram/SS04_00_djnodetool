@@ -8,7 +8,11 @@
 //
 // Phase 4.5: "Delete selected node". The Inspector's Delete button removes the
 // selected node (and any edges connected to it) and clears the selection.
-// Dragging, edge creation, and import/export are not part of these phases.
+//
+// Phase 5: "Drag nodes". A node can be dragged on the canvas; each move writes
+// the node's new x/y back into the project. Connected edges follow because
+// EdgeView derives its line geometry from the nodes' x/y.
+// Edge creation, import/export, audio, and crossfade are not part of these phases.
 
 import { useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
@@ -53,6 +57,17 @@ function App() {
     setSelectedNodeId(newNode.id);
   }
 
+  // Move a node to a new position by writing its x/y back into the project.
+  // Called repeatedly while dragging, so it only replaces the one node.
+  function handleMoveNode(nodeId: string, x: number, y: number) {
+    setProject((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) =>
+        node.id === nodeId ? { ...node, x, y } : node,
+      ),
+    }));
+  }
+
   // Delete a node and any edges connected to it, then clear the selection.
   function handleDeleteNode(nodeId: string) {
     setProject((current) => ({
@@ -87,6 +102,7 @@ function App() {
         selectedNodeId={selectedNodeId}
         onSelectNode={setSelectedNodeId}
         onDeselect={() => setSelectedNodeId(null)}
+        onMoveNode={handleMoveNode}
       />
     </div>
   );

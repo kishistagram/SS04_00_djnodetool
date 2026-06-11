@@ -5,7 +5,12 @@
 // clicking the empty canvas background deselects (via onDeselect). Edges
 // look up their from/to nodes by id; nodes look up their linked track by
 // id (to show the artist).
+//
+// Phase 5: node dragging. NodeCanvas owns the canvas DOM ref and passes it to
+// each TrackNode so a node can convert mouse coordinates into canvas-relative
+// x/y while dragging. onMoveNode writes the new position back to the project.
 
+import { useRef } from "react";
 import type { Track, TrackNode as TrackNodeType, TransitionEdge } from "../domain/types";
 import TrackNode from "./TrackNode";
 import EdgeView from "./EdgeView";
@@ -17,6 +22,7 @@ type NodeCanvasProps = {
   selectedNodeId: string | null;
   onSelectNode: (id: string) => void;
   onDeselect: () => void;
+  onMoveNode: (id: string, x: number, y: number) => void;
 };
 
 const ARROW_MARKER_ID = "edge-arrowhead";
@@ -28,12 +34,17 @@ function NodeCanvas({
   selectedNodeId,
   onSelectNode,
   onDeselect,
+  onMoveNode,
 }: NodeCanvasProps) {
   const findNode = (id: string) => nodes.find((node) => node.id === id);
   const findTrack = (id: string) => tracks.find((track) => track.id === id);
 
+  // The canvas element, used by nodes to map mouse coordinates to canvas
+  // space while dragging. Owned here so nodes never query the DOM directly.
+  const canvasRef = useRef<HTMLElement>(null);
+
   return (
-    <main className="node-canvas" onClick={onDeselect}>
+    <main className="node-canvas" ref={canvasRef} onClick={onDeselect}>
       <svg className="edge-layer">
         <defs>
           <marker
@@ -68,7 +79,9 @@ function NodeCanvas({
           node={node}
           track={findTrack(node.trackId)}
           isSelected={node.id === selectedNodeId}
+          canvasRef={canvasRef}
           onSelect={() => onSelectNode(node.id)}
+          onMove={(x, y) => onMoveNode(node.id, x, y)}
         />
       ))}
     </main>

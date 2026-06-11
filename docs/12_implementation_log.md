@@ -486,3 +486,69 @@ Results:
     to "Select a node".
   - Deleting node-001 (which has a connected edge in the mock data) also
     removes that edge; no dangling edge remains.
+
+## 2026-06-11: Phase 5 - Drag nodes
+
+### Summary
+
+Phase 5 made nodes draggable on the canvas. Pressing the mouse on a node
+selects it and starts a drag; moving the mouse updates the node's x/y in the
+project; releasing ends the drag. Connected edges follow automatically because
+EdgeView derives its geometry from the nodes' x/y.
+
+### Files Modified
+
+* `src/App.tsx` - added `handleMoveNode(nodeId, x, y)`, which replaces the
+  dragged node's x/y in `project.nodes` via `map` (immutable update). Passed
+  `onMoveNode` to NodeCanvas.
+* `src/components/NodeCanvas.tsx` - created the canvas `useRef` and attached it
+  to the canvas element; passed the ref and an `onMove` callback to each
+  TrackNode.
+* `src/components/TrackNode.tsx` - added the drag logic: `mousedown` selects and
+  starts the drag, `window` `mousemove` converts pointer coordinates to
+  canvas-relative x/y (using the canvas ref and a pointer/corner offset) and
+  calls `onMove`, `mouseup` removes the listeners. A `didDrag` ref suppresses
+  the trailing click after a real drag.
+* `src/index.css` - `cursor: grab` / `:active` `grabbing`, and `user-select:
+  none` on the node so dragging does not select the label text.
+
+### Files Intentionally Not Modified
+
+* `src/components/EdgeView.tsx` - already computes line endpoints from each
+  node's x/y, so edges follow moved nodes without any change.
+* `src/domain/types.ts`, `mockProject.ts` - no data-model change needed.
+
+### State and Data Flow
+
+* `App` owns `project` and `selectedNodeId`.
+* `NodeCanvas` owns the canvas DOM ref and passes it down (nodes never query the
+  DOM directly).
+* On drag: TrackNode computes the new canvas-relative x/y and calls
+  `onMove(x, y)` -> `onMoveNode(id, x, y)` -> `setProject` updates that node.
+* NodeCanvas re-renders the node at its new position and EdgeView re-renders any
+  connected edges.
+
+### Out of Scope (deferred to later phases)
+
+* Coordinate clamping to the canvas bounds.
+* Edge creation / "Start Connection".
+* Project JSON import/export, audio playback, crossfade.
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors)
+* `npm run lint`: passed (no warnings, no errors)
+* `npm run dev`: verified in the browser:
+  - Dragging the Night Drive node moved it (x:100,y:160 -> x:300,y:410) and the
+    Inspector position updated live.
+  - The connected edge followed the node to its new position.
+  - The node stayed selected during and after the drag.
+  - A plain click (no movement) still selects a different node normally.
