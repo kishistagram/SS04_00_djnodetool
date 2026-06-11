@@ -518,3 +518,95 @@ Reason:
 
 The MVP decision log already states node rename and color editing are out
 of scope, and "Start Connection" belongs to edge creation (Phase 5).
+
+## 2026-06-11: Phase 4 Implementation Decisions
+
+### Context
+
+Phase 4 added the "Add to Canvas" button to the Track Library. Clicking it
+creates a new node from a track and places it on the canvas. The scope was
+node creation only (no deletion, dragging, or edge creation).
+
+### Decisions
+
+#### 1. Project becomes state in App
+
+Decision:
+
+The whole project is now held in `App` with `useState<Project>(mockProject)`
+instead of referencing `mockProject` directly.
+
+Reason:
+
+Adding a node must change `project.nodes` at runtime. Holding the project in
+state is the smallest change that makes the data mutable, and it sets up the
+later "drag to reposition" step (Phase 4.x), which also writes node x/y back
+into the project.
+
+#### 2. Node creation lives in App, library stays presentational
+
+Decision:
+
+`handleAddToCanvas(trackId)` is defined in `App`. `TrackLibrary` only calls
+`onAddToCanvas(track.id)` and does not own any project state.
+
+Reason:
+
+`App` owns the project, so the entity that creates nodes belongs there. The
+library stays a simple presentational component, consistent with the Phase 3
+data flow.
+
+#### 3. Runtime node ids use crypto.randomUUID()
+
+Decision:
+
+New nodes get `id: crypto.randomUUID()`, not the `"node-00N"` format used by
+the mock data.
+
+Reason:
+
+This matches the existing comment in `types.ts`/`mockProject.ts`: hand-written
+mock entities use readable ids, but runtime-created entities use
+`crypto.randomUUID()` to guarantee uniqueness without tracking a counter.
+
+#### 4. Simple fixed offset for placement (no auto-layout)
+
+Decision:
+
+New nodes are placed at `x: 200 + nodes.length * 30`, `y: 200 + nodes.length * 30`.
+
+Reason:
+
+A real auto-layout is out of scope. The fixed offset is just enough to keep
+repeated additions from fully overlapping, while staying trivial to read.
+
+#### 5. Default node color for created nodes
+
+Decision:
+
+Created nodes use a single default color (`#64748B`). The source track has no
+color of its own.
+
+Reason:
+
+`TrackNode.color` is optional and tracks do not carry a color. A neutral
+default keeps the visuals consistent without inventing per-track colors, which
+would be a separate feature.
+
+#### 6. Same track may be added multiple times
+
+Decision:
+
+There is no guard against adding the same track to the canvas more than once.
+
+Reason:
+
+Placing the same track at multiple points in a mix is a natural DJ use case,
+and the fixed offset keeps duplicates visually distinct.
+
+### Follow-up (not implemented in Phase 4)
+
+* **Node deletion is not implemented in Phase 4.** A node can be created and
+  selected but not removed. Deletion is handled separately in Phase 4.5
+  ("Delete selected node"), which also removes any edges connected to the
+  deleted node.

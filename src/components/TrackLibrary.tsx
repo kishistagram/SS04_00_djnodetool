@@ -1,16 +1,17 @@
 // TrackLibrary renders the list of tracks from Project.tracks.
 //
-// Phase 2: static display only. Each entry shows the title, artist (if
-// available), and BPM (if available). The "Add to Canvas" button is not
-// part of this phase.
+// Phase 4: each entry now has an "Add to Canvas" button. Clicking it asks
+// the parent (App) to create a new node from that track via onAddToCanvas.
+// The library itself stays presentational; it does not own project state.
 
 import type { Track } from "../domain/types";
 
 type TrackLibraryProps = {
   tracks: Track[];
+  onAddToCanvas: (trackId: string) => void;
 };
 
-function TrackLibrary({ tracks }: TrackLibraryProps) {
+function TrackLibrary({ tracks, onAddToCanvas }: TrackLibraryProps) {
   return (
     <aside className="track-library">
       <h2>Track Library</h2>
@@ -24,6 +25,13 @@ function TrackLibrary({ tracks }: TrackLibraryProps) {
             {track.bpm !== undefined && (
               <span className="track-bpm">{track.bpm} BPM</span>
             )}
+            <button
+              type="button"
+              className="add-to-canvas-button"
+              onClick={() => onAddToCanvas(track.id)}
+            >
+              Add to Canvas
+            </button>
           </li>
         ))}
       </ul>

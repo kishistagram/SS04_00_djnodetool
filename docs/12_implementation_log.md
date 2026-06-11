@@ -359,3 +359,70 @@ decision that node rename and color editing are out of scope.
 The next implementation step is the "Add to Canvas" button (Phase 4),
 which will create new nodes at runtime and require the project's nodes to
 become state rather than fixed mock data.
+
+## 2026-06-11: Phase 4 - Add to Canvas (track-to-canvas node creation)
+
+### Summary
+
+Phase 4 made the project mutable for the first time. Each track in the Track
+Library now has an "Add to Canvas" button. Clicking it creates a new node from
+that track, appends it to the project, and selects the new node so its details
+appear in the Inspector Panel.
+
+### Files Modified
+
+* `src/App.tsx` - project is now `useState<Project>(mockProject)`; added
+  `handleAddToCanvas(trackId)`; aliased the `TrackNode` type to `TrackNodeData`
+  to avoid colliding with the `TrackNode` component.
+* `src/components/TrackLibrary.tsx` - added the `onAddToCanvas` prop and an
+  "Add to Canvas" button per track.
+* `src/index.css` - styling for `.add-to-canvas-button`.
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts`, `src/domain/mockProject.ts` - the data model already
+  supports runtime nodes; only the seed data is reused.
+* `src/components/NodeCanvas.tsx`, `TrackNode.tsx`, `InspectorPanel.tsx` - they
+  already render from props, so added nodes show up with no change.
+
+### State and Data Flow
+
+* `App` owns `project` (state) and `selectedNodeId` (state).
+* `TrackLibrary` calls `onAddToCanvas(track.id)`.
+* `handleAddToCanvas` looks up the track, builds a new `TrackNode`
+  (`crypto.randomUUID()` id, default color `#64748B`, position
+  `200 + nodes.length * 30`), appends it immutably via `setProject`, and sets
+  it as the selected node.
+* `NodeCanvas` and `InspectorPanel` re-render from the updated project.
+
+### Out of Scope (deferred to later phases)
+
+* **Node deletion** - handled separately in Phase 4.5.
+* Drag to reposition nodes (writes x/y back to the project).
+* Edge creation / "Start Connection".
+* Project JSON import/export, audio playback, crossfade, localStorage.
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (23 modules, 0 errors)
+* `npm run lint`: passed (no warnings, no errors)
+* `npm run dev`: verified in the browser:
+  - Each track shows an "Add to Canvas" button.
+  - Clicking it adds a node to the canvas, auto-selects it, and fills the
+    Inspector with the new node's details.
+  - The same track can be added multiple times; nodes are offset so they do
+    not fully overlap.
+
+### Notes
+
+There is no way to remove a node yet. Node deletion is implemented next in
+Phase 4.5 ("Delete selected node"), which adds a Delete button to the Inspector
+Panel and also removes edges connected to the deleted node.
