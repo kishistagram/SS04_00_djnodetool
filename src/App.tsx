@@ -12,14 +12,20 @@
 // Phase 5: "Drag nodes". A node can be dragged on the canvas; each move writes
 // the node's new x/y back into the project. Connected edges follow because
 // EdgeView derives its line geometry from the nodes' x/y.
-// Edge creation, import/export, audio, and crossfade are not part of these phases.
+//
+// Phase 6: "JSON save/load". The project can be exported to a JSON file and
+// imported back via the Project Toolbar. On a successful import the whole
+// project is replaced and the selection is cleared.
+// Edge creation, audio, and crossfade are not part of these phases.
 
 import { useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
 // TrackNodeData here to avoid a naming collision with the component.
 import type { Project, TrackNode as TrackNodeData } from "./domain/types";
 import { mockProject } from "./domain/mockProject";
+import { downloadProject, parseProject } from "./storage/projectStorage";
 import TrackLibrary from "./components/TrackLibrary";
+import ProjectToolbar from "./components/ProjectToolbar";
 import NodeCanvas from "./components/NodeCanvas";
 import InspectorPanel from "./components/InspectorPanel";
 
@@ -81,9 +87,39 @@ function App() {
     setSelectedNodeId(null);
   }
 
+  // Export the current project as a downloadable JSON file.
+  function handleExport() {
+    downloadProject(project);
+  }
+
+  // Import a project from a JSON file, replacing the current one. On any parse
+  // or validation error, keep the current project and show a simple message.
+  function handleImportFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const loaded = parseProject(String(reader.result));
+        setProject(loaded);
+        setSelectedNodeId(null);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not load file.";
+        window.alert(`Import failed: ${message}`);
+      }
+    };
+    reader.onerror = () => {
+      window.alert("Import failed: could not read the file.");
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <div className="app-layout">
       <div className="left-column">
+        <ProjectToolbar
+          onExport={handleExport}
+          onImportFile={handleImportFile}
+        />
         <TrackLibrary
           tracks={project.tracks}
           onAddToCanvas={handleAddToCanvas}

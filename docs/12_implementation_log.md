@@ -552,3 +552,77 @@ Results:
   - The connected edge followed the node to its new position.
   - The node stayed selected during and after the drag.
   - A plain click (no movement) still selects a different node normally.
+
+## 2026-06-21: Phase 6 - JSON save/load (export/import)
+
+### Summary
+
+The project can now be exported to a JSON file and imported back. A new
+Project Toolbar holds the Export JSON and Import JSON actions. Pure
+serialize/parse logic lives in a React-free storage module and is covered by
+unit tests (first tests in the project, using Vitest).
+
+### Files Modified
+
+* `src/storage/projectStorage.ts` (new) - `serializeProject`, `parseProject`,
+  and `downloadProject`. The first two are pure; `downloadProject` does the DOM
+  download.
+* `src/storage/projectStorage.test.ts` (new) - Vitest unit tests for the pure
+  functions (round-trip, invalid JSON, missing field, wrong type).
+* `src/components/ProjectToolbar.tsx` (new) - Export / Import buttons; the
+  Import button opens a hidden `<input type="file" accept=".json">`.
+* `src/App.tsx` - added `handleExport` and `handleImportFile`; renders
+  `ProjectToolbar` above `TrackLibrary` in the left column.
+* `src/index.css` - styles for `.project-toolbar`, `.toolbar-button`, and the
+  hidden file input.
+* `package.json` - added `vitest` (devDependency) and a `"test": "vitest run"`
+  script.
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts`, `mockProject.ts` - the saved JSON matches the existing
+  `Project` type exactly; no data-model change needed.
+* `src/components/TrackLibrary.tsx` - kept free of save/load UI; the toolbar is
+  a separate component.
+
+### State and Data Flow
+
+* Export: `handleExport` calls `downloadProject(project)`, which serializes the
+  current project (two-space indent) and triggers a `<title>.json` download via
+  a temporary `<a>` + blob URL.
+* Import: `ProjectToolbar` reads the chosen `File` and calls
+  `onImportFile(file)`. `App.handleImportFile` uses `FileReader` to read the
+  text, `parseProject` to validate it, then `setProject(loaded)` and
+  `setSelectedNodeId(null)`.
+* On any parse/validation error, the current project is left unchanged and a
+  simple `window.alert` shows the message.
+
+### Out of Scope (deferred to later phases)
+
+* Edge creation / "Start Connection".
+* Audio playback and crossfade.
+* Deep validation of nested fields, schema versioning, auto-save, undo/redo.
+* React Testing Library / end-to-end tests (only pure-function unit tests for
+  now).
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run test    # vitest run
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors).
+* `npm run lint`: passed (no warnings, no errors).
+* `npm run test`: passed (5 tests in `projectStorage.test.ts`).
+* `npm run dev`: verified in the browser:
+  - Export JSON produced a `application/json` blob with two-space indentation
+    and the full `Project` shape (`id, title, tracks, nodes, edges`).
+  - Importing a valid project file replaced the project (library + canvas
+    showed the imported track) and cleared the selection.
+  - Importing invalid JSON showed an "Import failed" alert and left the current
+    project unchanged.
