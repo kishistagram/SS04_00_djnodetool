@@ -753,3 +753,80 @@ Reason:
 `EdgeView` already derives its line endpoints from each node's x/y (center of
 the fixed-size node). Updating a node's x/y is enough for connected edges to
 re-render in the new position.
+
+## 2026-06-21: Phase 6 Implementation Decisions
+
+### Context
+
+Phase 6 implements step 11 of the First Implementation Order: JSON save/load
+(export/import). This is original MVP scope (docs/02_mvp_scope.md §6,
+docs/07_project_storage.md). A minimal Vitest setup was added alongside it.
+
+### Decisions
+
+#### 1. Pure storage module separated from DOM glue
+
+Decision:
+
+`serializeProject` and `parseProject` are pure functions; `downloadProject`
+holds the DOM/blob download. All live in `src/storage/projectStorage.ts`.
+
+Reason:
+
+Keeping serialization/validation pure makes them unit-testable without a DOM
+and keeps audio/UI concerns out of storage (matches the architecture rules in
+CLAUDE.md).
+
+#### 2. Minimal validation in parseProject
+
+Decision:
+
+`parseProject` checks only that the top-level required fields exist and have
+the right shape: `id`/`title` are strings and `tracks`/`nodes`/`edges` are
+arrays. Anything else (bad JSON, missing field, wrong type) throws an `Error`.
+
+Reason:
+
+This matches docs/07_project_storage.md ("validate required top-level fields")
+and keeps the MVP small. Deep per-field validation is out of scope.
+
+#### 3. Import replaces the project and clears selection
+
+Decision:
+
+A successful import calls `setProject(loaded)` and `setSelectedNodeId(null)`.
+On error the current project is unchanged and a `window.alert` shows the
+message.
+
+Reason:
+
+The loaded project's nodes differ from the current ones, so the old
+`selectedNodeId` would be stale. Clearing it avoids a dangling selection.
+`alert` is the smallest reasonable error surface for the MVP.
+
+#### 4. Separate ProjectToolbar component
+
+Decision:
+
+Export/Import controls live in a new `ProjectToolbar.tsx`, not in
+`TrackLibrary`. Import uses a hidden file input opened by a visible button.
+
+Reason:
+
+Keeps the Track Library presentational and focused. The hidden-input pattern
+gives a normal-looking button while using the native file picker.
+
+#### 5. Vitest for pure-function tests only
+
+Decision:
+
+Added `vitest` as the only new devDependency and a `"test": "vitest run"`
+script. Tests cover `projectStorage` pure functions only. No React Testing
+Library or end-to-end tests yet.
+
+Reason:
+
+docs/11_development_workflow.md states a Test-First Preference and anticipates
+tests once they exist. `projectStorage` is the natural first target: pure, with
+side effects isolated in `downloadProject`. Scope was kept minimal per the
+request.
