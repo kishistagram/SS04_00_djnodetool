@@ -10,33 +10,79 @@
 //
 // Phase 7: a "Start Connection" button begins edge creation from the selected
 // node. While connection mode is active it shows a short hint instead.
+//
+// Phase 7.5: when an edge is selected instead of a node, the panel shows the
+// connection's basic info (from -> to, transition type, fade duration) read
+// only, plus a "Delete connection" button. Editing the edge is out of scope.
 
-import type { Track, TrackNode } from "../domain/types";
+import type { Track, TrackNode, TransitionEdge } from "../domain/types";
 
 type InspectorPanelProps = {
   tracks: Track[];
   nodes: TrackNode[];
+  edges: TransitionEdge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   isConnecting: boolean;
   onDeleteNode: (nodeId: string) => void;
+  onDeleteEdge: (edgeId: string) => void;
   onStartConnection: () => void;
 };
 
 function InspectorPanel({
   tracks,
   nodes,
+  edges,
   selectedNodeId,
+  selectedEdgeId,
   isConnecting,
   onDeleteNode,
+  onDeleteEdge,
   onStartConnection,
 }: InspectorPanelProps) {
+  // Edge selection takes priority when present (selection is exclusive, so at
+  // most one of node/edge is set at a time).
+  const edge = edges.find((e) => e.id === selectedEdgeId);
+  if (edge) {
+    const fromNode = nodes.find((n) => n.id === edge.fromNodeId);
+    const toNode = nodes.find((n) => n.id === edge.toNodeId);
+    const fromLabel = fromNode ? fromNode.label : edge.fromNodeId;
+    const toLabel = toNode ? toNode.label : edge.toNodeId;
+
+    return (
+      <section className="inspector-panel">
+        <h2>Inspector</h2>
+        <dl className="inspector-fields">
+          <dt>Connection</dt>
+          <dd>
+            {fromLabel} → {toLabel}
+          </dd>
+
+          <dt>Transition</dt>
+          <dd>{edge.transitionType}</dd>
+
+          <dt>Fade</dt>
+          <dd>{edge.fadeDurationSec}s</dd>
+        </dl>
+
+        <button
+          type="button"
+          className="delete-edge-button"
+          onClick={() => onDeleteEdge(edge.id)}
+        >
+          Delete connection
+        </button>
+      </section>
+    );
+  }
+
   const node = nodes.find((n) => n.id === selectedNodeId);
 
   if (!node) {
     return (
       <section className="inspector-panel">
         <h2>Inspector</h2>
-        <p className="inspector-placeholder">Select a node</p>
+        <p className="inspector-placeholder">Select a node or connection</p>
       </section>
     );
   }

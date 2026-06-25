@@ -918,3 +918,106 @@ Reason:
 
 Keeps the change small and focused on the connection flow. The edit form is a
 separate concern that can follow once creation works.
+
+## 2026-06-21: Phase 7.5 Implementation Decisions
+
+### Context
+
+Phase 7.5 is a small follow-up to Phase 7: let the user select an edge and
+delete it, mirroring the node delete added in Phase 4.5. It is intentionally
+scoped to selection + delete only, before moving on to audio playback.
+
+### Decisions
+
+#### 1. selectedEdgeId lives in App, alongside selectedNodeId
+
+Decision:
+
+`App` holds both `selectedNodeId` and `selectedEdgeId` as separate nullable
+states.
+
+Reason:
+
+`App` is the single source of truth for the project and selection. Adding a
+sibling state matches the existing prop-drilling pattern and avoids a larger
+refactor of the many `selectedNodeId` usages from Phases 3-7.
+
+#### 2. Exclusivity via selectNode / selectEdge wrappers
+
+Decision:
+
+Two small helpers enforce that node and edge selection are mutually exclusive:
+`selectNode` clears the edge, `selectEdge` clears the node.
+
+Reason:
+
+Keeping the "only one selected at a time" invariant in two tiny functions is
+simpler and safer than a combined `selection: {type, id}` union, which would
+touch every existing `selectedNodeId` reference. The union approach was
+considered and deferred as too large for this phase.
+
+#### 3. Wide transparent hit line for clicking edges
+
+Decision:
+
+Each edge renders a visible 2px line plus a separate transparent 12px
+`.edge-hit` line with `pointer-events: stroke`. The `.edge-layer` SVG stays
+`pointer-events: none` and the visible line is also `pointer-events: none`.
+
+Reason:
+
+The SVG layer sits behind the nodes; leaving it `pointer-events: none` keeps
+node clicks working. A thin 2px line is hard to click, so a wider invisible
+stroke provides a comfortable hit target. `pointer-events: stroke` limits the
+hit area to the line itself, not its bounding box.
+
+#### 4. Edge click stops propagation
+
+Decision:
+
+The hit line's click handler calls `event.stopPropagation()` before selecting.
+
+Reason:
+
+Without it, the click would bubble to the canvas background and immediately
+clear the selection (or, in connection mode, cancel). This mirrors the node
+click handling from Phases 3 and 7.
+
+#### 5. Edge clicks are ignored during connection mode
+
+Decision:
+
+`handleEdgeClick` returns immediately when `connectionSourceId` is set, so
+clicking an edge during connection mode does nothing. The hit line still stops
+propagation, so the background cancel does not misfire.
+
+Reason:
+
+This keeps the Phase 7 connection flow intact and is the agreed minimal
+behavior: an edge click mid-connection is a no-op rather than a surprise.
+
+#### 6. Import clears all selection-related state
+
+Decision:
+
+A successful JSON import clears `selectedNodeId`, `selectedEdgeId`, and
+`connectionSourceId`.
+
+Reason:
+
+The loaded project has its own ids; any retained selection or connection source
+would point at the old project. Clearing all three avoids dangling references.
+
+#### 7. Edge editing stays out of scope
+
+Decision:
+
+The Inspector shows edge info read-only (from -> to, transitionType,
+fadeDurationSec). Editing `transitionType` / `fadeDurationSec` / `note` is not
+implemented, even though docs/05_ui_requirements.md describes an edit form.
+
+Reason:
+
+This phase is deliberately limited to selection + delete. The edit form is a
+separate concern for a later phase; the deviation from the UI doc is
+intentional and recorded here.

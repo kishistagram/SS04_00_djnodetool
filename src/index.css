@@ -224,6 +224,8 @@ code {
   background: var(--code-bg);
 }
 
+/* The SVG layer itself ignores pointer events so it never blocks node clicks;
+   individual edge hit lines opt back in via their own pointer-events. */
 .edge-layer {
   position: absolute;
   inset: 0;
@@ -235,6 +237,22 @@ code {
 .edge-line {
   stroke: var(--text);
   stroke-width: 2;
+  /* Only the wide hit line handles clicks; the visible line stays inert. */
+  pointer-events: none;
+}
+
+.edge-line.selected {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+/* Wide, invisible line that makes the thin edge easy to click. `stroke` means
+   only the drawn stroke area receives clicks (not the bounding box). */
+.edge-hit {
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
 }
 
 .edge-arrowhead {
@@ -329,6 +347,21 @@ code {
 }
 
 .delete-node-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.delete-edge-button {
+  margin-top: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-edge-button:hover {
   background: rgba(239, 68, 68, 0.2);
 }
 
