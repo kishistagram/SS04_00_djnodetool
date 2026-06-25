@@ -793,3 +793,87 @@ Results:
   - Phase 7 regression: the Start Connection flow still creates edges, and
     clicking an edge while in connection mode does nothing (and does not cancel
     the connection).
+
+## 2026-06-21: Phase 8 - Simple audio playback (oscillator)
+
+### Summary
+
+The app now makes sound. A new AudioEngine plays a short tone for the selected
+node and stops it. The engine uses an OscillatorNode as a placeholder source
+(no audio files yet); each node gets a stable, distinct frequency and waveform.
+The UI (PlayerControls) only triggers high-level callbacks and never touches
+the Web Audio API.
+
+### Files Modified / Added
+
+* `src/audio/audioEngine.ts` (new) - `AudioEngine` class with `playNode(node)`,
+  `stop()`, and `dispose()`. Wiring is `source -> gain -> destination`. The
+  source is built in `createSourceForNode`, the single swap point for future
+  audio-file playback.
+* `src/audio/nodeSound.ts` (new) - pure `hashString` and `soundForNode`: map a
+  node id to a stable frequency + waveform. No Web Audio API, so it is unit
+  testable.
+* `src/audio/nodeSound.test.ts` (new) - 5 Vitest tests (determinism,
+  non-negative hash, valid waveform, distinct sounds).
+* `src/components/PlayerControls.tsx` (new) - Play / Stop buttons + a status
+  line. Calls `onPlay(node)` / `onStop`; knows nothing about the engine.
+* `src/App.tsx` - lazily creates one `AudioEngine` via `useRef<AudioEngine |
+  null>(null)` + `getAudioEngine()`; `handlePlayNode` / `handleStop` wrap it;
+  a `useEffect` cleanup calls `dispose()` on unmount; renders `PlayerControls`
+  under the Inspector.
+* `src/index.css` - styles for `.player-controls`, `.player-button` (incl.
+  disabled), and `.player-status`.
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts`, `mockProject.ts` - no data-model change. `audioUrl`
+  stays unused for now.
+* Canvas / Inspector / edge components - unchanged.
+
+### Lazy Engine and Single AudioContext
+
+* The `AudioEngine` ref starts null; the instance is created on first access.
+* The instance does not open an `AudioContext` in its constructor. The context
+  is created lazily inside `playNode` (the first user gesture), satisfying the
+  browser autoplay policy, and is reused for all later playback.
+* `dispose()` stops playback and closes the context.
+
+### UI / Engine Separation
+
+* `PlayerControls` receives `onPlay` / `onStop` callbacks, not the engine. The
+  engine ref is only read inside event handlers in `App`, never during render.
+* Oscillator, frequency, and waveform live entirely in `src/audio`; the UI
+  never sees them.
+
+### Out of Scope (deferred)
+
+* Fade and crossfade (Phase 13).
+* Loading `node.audioUrl`, `AudioBuffer` decoding, real/Suno audio (later
+  phase).
+* Playing multiple nodes at once (one voice at a time in the MVP).
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run test    # vitest run
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors).
+* `npm run lint`: passed (no warnings, no errors).
+* `npm run test`: passed (10 tests: 5 storage + 5 nodeSound).
+* `npm run dev`: verified in the browser (programmatically, since sound is not
+  audible in the headless tool):
+  - With no node selected, Play is disabled and the status reads "No node
+    selected".
+  - Selecting a node enables Play and does NOT create an AudioContext yet
+    (lazy).
+  - Clicking Play creates exactly one AudioContext and starts one oscillator.
+  - Playing a second node stops the first oscillator and starts a new one
+    (single voice); the AudioContext count stays 1 (no overlapping contexts).
+  - Stop stops the current oscillator.
+  - Whether sound is actually audible is left to the user's own manual check.

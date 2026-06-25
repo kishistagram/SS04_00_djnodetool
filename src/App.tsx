@@ -26,8 +26,13 @@
 // deselects any node); the Inspector then shows the connection's basic info and
 // a "Delete connection" button that removes just that edge. Node and edge
 // selection are mutually exclusive. Editing an edge is not part of this phase.
+//
+// Phase 8: "Simple audio playback". App owns one AudioEngine (lazily created)
+// and passes it to PlayerControls, which can play or stop the selected node's
+// sound. The engine is disposed when the app unmounts. Crossfade and real
+// audio files are not part of this phase.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
 // TrackNodeData here to avoid a naming collision with the component.
 import type {
@@ -37,10 +42,12 @@ import type {
 } from "./domain/types";
 import { mockProject } from "./domain/mockProject";
 import { downloadProject, parseProject } from "./storage/projectStorage";
+import { AudioEngine } from "./audio/audioEngine";
 import TrackLibrary from "./components/TrackLibrary";
 import ProjectToolbar from "./components/ProjectToolbar";
 import NodeCanvas from "./components/NodeCanvas";
 import InspectorPanel from "./components/InspectorPanel";
+import PlayerControls from "./components/PlayerControls";
 
 // Default color for runtime-created nodes (tracks have no color of their own).
 const DEFAULT_NODE_COLOR = "#64748B";
@@ -48,6 +55,29 @@ const DEFAULT_NODE_COLOR = "#64748B";
 function App() {
   // The whole project lives in state so nodes can be added at runtime.
   const [project, setProject] = useState<Project>(mockProject);
+
+  // One AudioEngine for the whole app. Lazily created: the ref starts null and
+  // the engine is constructed on first access. Constructing it does not open an
+  // AudioContext yet (that happens on the first playNode, a user gesture).
+  //
+  // The ref is only read inside event handlers (handlePlayNode / handleStop /
+  // cleanup), never during render, so PlayerControls receives plain callbacks
+  // and the UI never touches the engine directly.
+  const audioEngineRef = useRef<AudioEngine | null>(null);
+  function getAudioEngine(): AudioEngine {
+    if (!audioEngineRef.current) {
+      audioEngineRef.current = new AudioEngine();
+    }
+    return audioEngineRef.current;
+  }
+
+  // Release audio resources when the app unmounts.
+  useEffect(() => {
+    return () => {
+      audioEngineRef.current?.dispose();
+      audioEngineRef.current = null;
+    };
+  }, []);
 
   // The currently selected node, or null when nothing is selected.
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -214,6 +244,21 @@ function App() {
     setSelectedEdgeId(null);
   }
 
+  // The currently selected node object (or null), used by PlayerControls.
+  const selectedNode =
+    project.nodes.find((node) => node.id === selectedNodeId) ?? null;
+
+  // Play a node's sound via the (lazily created) audio engine. Called from a
+  // user gesture, so this is where the AudioContext first comes to life.
+  function handlePlayNode(node: TrackNodeData) {
+    getAudioEngine().playNode(node);
+  }
+
+  // Stop any current playback.
+  function handleStop() {
+    getAudioEngine().stop();
+  }
+
   return (
     <div className="app-layout">
       <div className="left-column">
@@ -235,6 +280,11 @@ function App() {
           onDeleteNode={handleDeleteNode}
           onDeleteEdge={handleDeleteEdge}
           onStartConnection={handleStartConnection}
+        />
+        <PlayerControls
+          selectedNode={selectedNode}
+          onPlay={handlePlayNode}
+          onStop={handleStop}
         />
       </div>
       <NodeCanvas
