@@ -1127,3 +1127,93 @@ Reason:
 
 The Web Audio API is hard to test under jsdom, but the musical mapping is a
 pure function and easy to test, matching the project's test-first preference.
+
+## 2026-06-21: Phase 9 Implementation Decisions
+
+### Context
+
+Phase 9 implements step 13 (crossfade), the final MVP step. It extends the
+Phase 8 oscillator engine to play a transition between a selected edge's source
+and target nodes, using `transitionType` and `fadeDurationSec`.
+
+### Decisions
+
+#### 1. Transition is a preview, not full DJ playback
+
+Decision:
+
+The oscillator-based transition plays the edge's source node and target node as
+a preview. It does not transition from whatever track is currently playing.
+
+Reason:
+
+Real DJ behavior (transitioning out of the actually-playing track) requires real
+audio sources and richer state. For the MVP it is enough to demonstrate the
+cut/fade/crossfade shapes between a source and a target. When real audio (mp3 /
+Suno) is added later, this is extended into actual track playback.
+
+#### 2. Single currentVoice -> activeVoices array
+
+Decision:
+
+The engine tracks `activeVoices: Voice[]` instead of one `currentVoice`.
+
+Reason:
+
+A crossfade plays two voices at the same time (source fading out, target fading
+in). A list lets the engine schedule, track, and clean up any number of voices,
+and `stop()` simply tears down all of them.
+
+#### 3. cut / fade / crossfade interpretation
+
+Decision:
+
+- cut: play only the target immediately (tiny fade-in to avoid a click).
+- fade: fade the source out over `fade`, then start the target.
+- crossfade: play both, source 1->0 and target 0->1 over `fade`.
+
+Reason:
+
+These match docs/06_audio_engine_requirements.md and are the smallest faithful
+implementations of each shape on top of the existing source->gain->destination
+wiring.
+
+#### 4. Abnormal fadeDurationSec rounds to 0.01s
+
+Decision:
+
+`sanitizeFadeDuration` clamps any non-finite value, or any value <= 0.01, to
+0.01s (an almost-instant transition), and caps values above 60s.
+
+Reason:
+
+Imported or hand-edited projects may contain 0, negative, NaN, or Infinity.
+Rounding to a tiny fade keeps the transition almost immediate and easy to debug,
+rather than silently substituting an unrelated "natural" duration like 3s. The
+clamp is a pure function, so it is unit tested.
+
+#### 5. New play cancels the previous; Stop is always available
+
+Decision:
+
+Every `playNode` / `playTransition` calls `stop()` first. In the UI, Stop stays
+enabled even when nothing is selected.
+
+Reason:
+
+Only one preview should sound at a time, so a new play cancels the previous.
+Selection state and playback state are independent, so the user must be able to
+stop a running sound regardless of what (if anything) is selected.
+
+#### 6. PlayerControls owns the trigger; Inspector is unchanged
+
+Decision:
+
+The "Play transition" control lives in PlayerControls, which switches on whether
+a node or an edge is selected. InspectorPanel keeps showing edge info and the
+Delete connection button only.
+
+Reason:
+
+Keeps playback controls in one place (easy to extend) and avoids mixing
+playback into the Inspector, which is for inspecting and deleting.

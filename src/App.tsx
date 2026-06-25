@@ -248,10 +248,30 @@ function App() {
   const selectedNode =
     project.nodes.find((node) => node.id === selectedNodeId) ?? null;
 
+  // The currently selected edge and its source/target nodes (or null), used by
+  // PlayerControls to play a transition preview.
+  const selectedEdge =
+    project.edges.find((edge) => edge.id === selectedEdgeId) ?? null;
+  const transitionSourceNode = selectedEdge
+    ? (project.nodes.find((node) => node.id === selectedEdge.fromNodeId) ?? null)
+    : null;
+  const transitionTargetNode = selectedEdge
+    ? (project.nodes.find((node) => node.id === selectedEdge.toNodeId) ?? null)
+    : null;
+
   // Play a node's sound via the (lazily created) audio engine. Called from a
   // user gesture, so this is where the AudioContext first comes to life.
   function handlePlayNode(node: TrackNodeData) {
     getAudioEngine().playNode(node);
+  }
+
+  // Play an edge's transition between its source and target nodes.
+  function handlePlayTransition(
+    edge: TransitionEdge,
+    sourceNode: TrackNodeData,
+    targetNode: TrackNodeData,
+  ) {
+    getAudioEngine().playTransition(edge, sourceNode, targetNode);
   }
 
   // Stop any current playback.
@@ -283,7 +303,11 @@ function App() {
         />
         <PlayerControls
           selectedNode={selectedNode}
-          onPlay={handlePlayNode}
+          selectedEdge={selectedEdge}
+          sourceNode={transitionSourceNode}
+          targetNode={transitionTargetNode}
+          onPlayNode={handlePlayNode}
+          onPlayTransition={handlePlayTransition}
           onStop={handleStop}
         />
       </div>

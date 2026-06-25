@@ -877,3 +877,92 @@ Results:
     (single voice); the AudioContext count stays 1 (no overlapping contexts).
   - Stop stops the current oscillator.
   - Whether sound is actually audible is left to the user's own manual check.
+
+## 2026-06-21: Phase 9 - Crossfade (transition playback)
+
+### Summary
+
+The app can now play a transition between two connected nodes. Selecting an
+edge shows a "Play transition" button in PlayerControls; it plays the edge's
+source and target according to `transitionType` (cut / fade / crossfade), using
+`fadeDurationSec`. This is a preview between the source and target nodes, not a
+full DJ transition from a currently-playing track. This completes MVP step 13.
+
+### Files Modified / Added
+
+* `src/audio/audioEngine.ts` - added `playTransition(edge, sourceNode,
+  targetNode)`; changed single `currentVoice` to an `activeVoices: Voice[]`
+  list (crossfade needs two voices); extracted `startVoice` and small ramp
+  helpers; `stop()` now stops and disconnects every active voice.
+* `src/audio/transitionTiming.ts` (new) - pure `sanitizeFadeDuration` plus
+  `MIN_FADE_SECONDS` (0.01) and `MAX_FADE_SECONDS` (60).
+* `src/audio/transitionTiming.test.ts` (new) - 5 Vitest tests for the clamp
+  (normal, zero/negative, NaN/Infinity, too-large, boundary).
+* `src/components/PlayerControls.tsx` - switches on selection: node -> Play,
+  edge -> Play transition, nothing -> Play disabled; Stop is always enabled.
+* `src/App.tsx` - derives `selectedEdge` and its source/target nodes; adds
+  `handlePlayTransition`; passes the new props to PlayerControls.
+
+### Files Intentionally Not Modified
+
+* `src/components/InspectorPanel.tsx` - unchanged: still shows edge info and the
+  Delete connection button.
+* `src/domain/types.ts`, `mockProject.ts` - no data-model change.
+
+### Transition Behavior
+
+* `cut`: play only the target immediately (tiny fade-in to avoid a click).
+* `fade`: fade the source out over `fade`, then start the target.
+* `crossfade`: play both at once, source PLAY_GAIN->0 and target 0->PLAY_GAIN
+  over `fade`.
+* `fadeDurationSec` is sanitized: anything not finite or <= 0.01 becomes 0.01s
+  (almost instant); values over 60s are capped.
+
+### Voice Management
+
+* `activeVoices` holds every scheduled/playing voice (one for playNode/cut, two
+  for fade/crossfade).
+* Each play call first calls `stop()`, so a new Play / Play transition cancels
+  the previous one.
+* `stop()` ramps each voice's gain to 0, stops the source, and disconnects, then
+  clears the list - so a Stop during a crossfade cleans up both voices.
+* The AudioContext is still created lazily on the first play and reused.
+
+### UI / Engine Separation
+
+* PlayerControls only calls `onPlayNode` / `onPlayTransition` / `onStop`. It
+  knows nothing about oscillators, gains, or the AudioContext; the engine ref is
+  only read inside App event handlers.
+
+### Out of Scope (deferred)
+
+* Loading `node.audioUrl`, AudioBuffer decoding, real/Suno audio.
+* Editing `transitionType` / `fadeDurationSec` from the UI.
+* Playing a transition from an already-playing track (real DJ behavior).
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run test    # vitest run
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors).
+* `npm run lint`: passed (no warnings, no errors).
+* `npm run test`: passed (15 tests: 5 storage + 5 nodeSound + 5
+  transitionTiming).
+* `npm run dev`: verified in the browser (programmatically; sound is not
+  audible in the headless tool):
+  - Nothing selected: Play disabled, Stop enabled, status "Nothing selected".
+  - Node selected: Play / Stop, status "Selected: <label>".
+  - Edge selected: Play transition / Stop, status "Transition: <from> -> <to>
+    (crossfade)"; the Inspector is unchanged.
+  - Play transition on the crossfade edge starts two oscillators at once; the
+    AudioContext count stays 1.
+  - Stop stops all active voices; a new Play transition stops the previous pair
+    first.
+  - Whether sound is actually audible is left to the user's own manual check.
