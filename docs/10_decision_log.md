@@ -830,3 +830,91 @@ docs/11_development_workflow.md states a Test-First Preference and anticipates
 tests once they exist. `projectStorage` is the natural first target: pure, with
 side effects isolated in `downloadProject`. Scope was kept minimal per the
 request.
+
+## 2026-06-21: Phase 7 Implementation Decisions
+
+### Context
+
+Phase 7 implements step 9 of the First Implementation Order: edge creation via
+the "Start Connection" flow described in docs/05_ui_requirements.md. The agreed
+edge defaults were recorded earlier in this log; this phase makes them real.
+
+### Decisions
+
+#### 1. Connection mode is a single `connectionSourceId` state
+
+Decision:
+
+`App` holds `connectionSourceId: string | null`. Non-null means connection mode
+is active, and its value is the source node id.
+
+Reason:
+
+One nullable field encodes both "are we connecting?" and "from which node?".
+This keeps the state minimal and avoids a separate boolean that could drift out
+of sync with the source id.
+
+#### 2. Drag is fully suppressed during connection mode
+
+Decision:
+
+While connecting, `TrackNode`'s mousedown returns immediately (after
+`stopPropagation`), so no drag starts and no window mouse listeners are added.
+The following click then completes the connection.
+
+Reason:
+
+Drag and "click to pick a target" both begin with mousedown on a node. In
+connection mode the target click must win, so dragging is disabled outright
+rather than disambiguated after the fact.
+
+#### 3. stopPropagation guards the background handler
+
+Decision:
+
+`TrackNode` keeps `stopPropagation` on both mousedown and click. The canvas
+background's click handler (`handleBackgroundClick`) only runs for clicks on
+empty space.
+
+Reason:
+
+Without this, completing a connection (a node click) would bubble to the canvas
+and immediately cancel or deselect. Stopping propagation keeps node clicks and
+background clicks cleanly separated.
+
+#### 4. After creating an edge, the source stays selected
+
+Decision:
+
+Creating an edge sets `connectionSourceId` back to null but does not change
+`selectedNodeId`, so the source node remains selected.
+
+Reason:
+
+It lets the user start another connection from the same source without
+reselecting it, and matches the requested behavior.
+
+#### 5. Self-loops are blocked; duplicates are not
+
+Decision:
+
+Clicking the source node during connection mode cancels instead of creating a
+self-edge. No check is made for an already-existing edge between the same pair.
+
+Reason:
+
+A self-loop is almost always a mis-click, so canceling is the safe choice.
+Duplicate-edge prevention is extra logic that is out of scope for this minimal
+step.
+
+#### 6. Edge selection/editing is out of scope
+
+Decision:
+
+This phase only creates edges. Selecting an edge and editing its
+`transitionType` / `fadeDurationSec` / `note` is deferred.
+
+Reason:
+
+Keeps the change small and focused on the connection flow. The edit form is a
+separate concern that can follow once creation works.

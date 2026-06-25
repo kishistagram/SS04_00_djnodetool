@@ -626,3 +626,87 @@ Results:
     showed the imported track) and cleared the selection.
   - Importing invalid JSON showed an "Import failed" alert and left the current
     project unchanged.
+
+## 2026-06-21: Phase 7 - Edge creation (Start Connection flow)
+
+### Summary
+
+The user can now create a transition edge between two nodes using the two-step
+click flow: select a source node, click "Start Connection" in the Inspector,
+then click a target node. The canvas shows a connection mode (source node
+highlighted, hint in the Inspector). Clicking the source again or clicking
+empty space cancels. New edges use the agreed defaults.
+
+### Files Modified
+
+* `src/App.tsx` - new `connectionSourceId` state; `handleStartConnection`,
+  `handleNodeClick` (branches on connection mode), and `handleBackgroundClick`
+  (cancels in connection mode, otherwise deselects). Creates a `TransitionEdge`
+  with `crypto.randomUUID()` and defaults `crossfade` / `fadeDurationSec: 3`.
+* `src/components/InspectorPanel.tsx` - "Start Connection" button (shown when a
+  node is selected and not connecting); a hint replaces it during connection
+  mode.
+* `src/components/NodeCanvas.tsx` - takes `connectionSourceId`, `onNodeClick`,
+  `onBackgroundClick`; adds `connecting` class; passes connection flags to each
+  node.
+* `src/components/TrackNode.tsx` - suppresses drag entirely while connecting;
+  routes clicks through `onClickNode`; adds `connection-source` class. Keeps the
+  existing `stopPropagation` on mousedown and click so a node click never
+  reaches the canvas background.
+* `src/index.css` - styles for the Start Connection button, the Inspector hint,
+  the connection-source outline, and the crosshair cursor in connection mode.
+
+### Files Intentionally Not Modified
+
+* `src/components/EdgeView.tsx` - already renders an edge from the from/to node
+  centers, so a newly created edge appears with no change.
+* `src/domain/types.ts`, `mockProject.ts` - `TransitionEdge` already exists.
+
+### State and Data Flow
+
+* `App` owns `connectionSourceId` (null = normal mode).
+* mousedown on a node: `stopPropagation` (never reaches the canvas); in
+  connection mode it returns immediately so no drag starts.
+* click on a node: `stopPropagation`, then `onClickNode` -> `handleNodeClick`.
+  In connection mode a click on a different node appends a new edge and exits
+  connection mode (source stays selected); a click on the source cancels.
+* click on the canvas background: `handleBackgroundClick` cancels the connection
+  in connection mode, otherwise deselects.
+
+### New Edge Defaults
+
+* `id`: `crypto.randomUUID()`
+* `transitionType`: `"crossfade"`
+* `fadeDurationSec`: `3`
+* `note`: omitted (undefined)
+
+### Out of Scope (deferred to later phases)
+
+* Selecting and editing edges (transitionType / fadeDurationSec / note form).
+* Preventing duplicate edges between the same pair (only self-loops are
+  blocked).
+* Drag-to-connect (not part of the MVP).
+* Audio playback and crossfade.
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run test    # vitest run
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors).
+* `npm run lint`: passed (no warnings, no errors).
+* `npm run test`: passed (5 existing storage tests still green).
+* `npm run dev`: verified in the browser:
+  - Start Connection enters connection mode (canvas `connecting` class, source
+    node dashed outline, Inspector hint).
+  - Clicking a different node creates an edge (defaults: crossfade / 3 / no
+    note / UUID id) and exits connection mode; the source stays selected.
+  - While connecting, dragging the source node does not move it.
+  - Clicking the source node again cancels (no edge created).
+  - Clicking empty canvas space cancels (no edge, selection preserved).

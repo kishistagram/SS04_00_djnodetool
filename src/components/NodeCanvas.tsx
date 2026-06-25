@@ -9,6 +9,11 @@
 // Phase 5: node dragging. NodeCanvas owns the canvas DOM ref and passes it to
 // each TrackNode so a node can convert mouse coordinates into canvas-relative
 // x/y while dragging. onMoveNode writes the new position back to the project.
+//
+// Phase 7: edge creation. When connectionSourceId is set the canvas is in
+// connection mode: the source node is highlighted and dragging is disabled so a
+// node click can complete the connection. Clicks go through onNodeClick (nodes)
+// and onBackgroundClick (empty space) so App can branch on the current mode.
 
 import { useRef } from "react";
 import type { Track, TrackNode as TrackNodeType, TransitionEdge } from "../domain/types";
@@ -20,8 +25,10 @@ type NodeCanvasProps = {
   nodes: TrackNodeType[];
   edges: TransitionEdge[];
   selectedNodeId: string | null;
+  connectionSourceId: string | null;
   onSelectNode: (id: string) => void;
-  onDeselect: () => void;
+  onNodeClick: (id: string) => void;
+  onBackgroundClick: () => void;
   onMoveNode: (id: string, x: number, y: number) => void;
 };
 
@@ -32,10 +39,13 @@ function NodeCanvas({
   nodes,
   edges,
   selectedNodeId,
+  connectionSourceId,
   onSelectNode,
-  onDeselect,
+  onNodeClick,
+  onBackgroundClick,
   onMoveNode,
 }: NodeCanvasProps) {
+  const isConnecting = connectionSourceId !== null;
   const findNode = (id: string) => nodes.find((node) => node.id === id);
   const findTrack = (id: string) => tracks.find((track) => track.id === id);
 
@@ -44,7 +54,11 @@ function NodeCanvas({
   const canvasRef = useRef<HTMLElement>(null);
 
   return (
-    <main className="node-canvas" ref={canvasRef} onClick={onDeselect}>
+    <main
+      className={isConnecting ? "node-canvas connecting" : "node-canvas"}
+      ref={canvasRef}
+      onClick={onBackgroundClick}
+    >
       <svg className="edge-layer">
         <defs>
           <marker
@@ -79,8 +93,11 @@ function NodeCanvas({
           node={node}
           track={findTrack(node.trackId)}
           isSelected={node.id === selectedNodeId}
+          isConnectionSource={node.id === connectionSourceId}
+          isConnecting={isConnecting}
           canvasRef={canvasRef}
           onSelect={() => onSelectNode(node.id)}
+          onClickNode={() => onNodeClick(node.id)}
           onMove={(x, y) => onMoveNode(node.id, x, y)}
         />
       ))}
