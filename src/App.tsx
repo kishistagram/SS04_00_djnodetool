@@ -21,6 +21,11 @@
 // puts the canvas in connection mode; clicking a different node then creates a
 // directed transition edge from the source to the target. Clicking empty space
 // (or the source node) cancels. Audio and crossfade are not part of this phase.
+//
+// Phase 7.5: "Edge selection and delete". Clicking an edge selects it (and
+// deselects any node); the Inspector then shows the connection's basic info and
+// a "Delete connection" button that removes just that edge. Node and edge
+// selection are mutually exclusive. Editing an edge is not part of this phase.
 
 import { useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
@@ -47,11 +52,27 @@ function App() {
   // The currently selected node, or null when nothing is selected.
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
+  // The currently selected edge, or null when nothing is selected. Node and
+  // edge selection are mutually exclusive (see selectNode / selectEdge).
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+
   // The source node id while the canvas is in connection mode, or null in
   // normal mode. Connection mode is entered via "Start Connection".
   const [connectionSourceId, setConnectionSourceId] = useState<string | null>(
     null,
   );
+
+  // Select a node and clear any edge selection, keeping the two exclusive.
+  function selectNode(nodeId: string | null) {
+    setSelectedEdgeId(null);
+    setSelectedNodeId(nodeId);
+  }
+
+  // Select an edge and clear any node selection, keeping the two exclusive.
+  function selectEdge(edgeId: string | null) {
+    setSelectedNodeId(null);
+    setSelectedEdgeId(edgeId);
+  }
 
   // Create a new node from a track and add it to the canvas, then select it.
   function handleAddToCanvas(trackId: string) {
@@ -74,7 +95,7 @@ function App() {
       ...current,
       nodes: [...current.nodes, newNode],
     }));
-    setSelectedNodeId(newNode.id);
+    selectNode(newNode.id);
   }
 
   // Move a node to a new position by writing its x/y back into the project.
@@ -98,7 +119,19 @@ function App() {
         (edge) => edge.fromNodeId !== nodeId && edge.toNodeId !== nodeId,
       ),
     }));
+    // The node and any of its edges are gone; clear both selections so neither
+    // points at something that no longer exists.
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+  }
+
+  // Delete a single edge by id, then clear the edge selection.
+  function handleDeleteEdge(edgeId: string) {
+    setProject((current) => ({
+      ...current,
+      edges: current.edges.filter((edge) => edge.id !== edgeId),
+    }));
+    setSelectedEdgeId(null);
   }
 
   // Export the current project as a downloadable JSON file.
@@ -114,7 +147,11 @@ function App() {
       try {
         const loaded = parseProject(String(reader.result));
         setProject(loaded);
+        // The loaded project has its own ids, so clear every piece of selection
+        // state that could still point at the old project.
         setSelectedNodeId(null);
+        setSelectedEdgeId(null);
+        setConnectionSourceId(null);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Could not load file.";
@@ -156,17 +193,25 @@ function App() {
       setConnectionSourceId(null);
       return;
     }
-    setSelectedNodeId(nodeId);
+    selectNode(nodeId);
+  }
+
+  // Handle a click on an edge. Ignored while connecting (so the connection flow
+  // is not disturbed); otherwise it selects the edge.
+  function handleEdgeClick(edgeId: string) {
+    if (connectionSourceId) return;
+    selectEdge(edgeId);
   }
 
   // Handle a click on the empty canvas background. In connection mode it
-  // cancels the connection; otherwise it clears the selection.
+  // cancels the connection; otherwise it clears both selections.
   function handleBackgroundClick() {
     if (connectionSourceId) {
       setConnectionSourceId(null);
       return;
     }
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
   }
 
   return (
@@ -183,9 +228,12 @@ function App() {
         <InspectorPanel
           tracks={project.tracks}
           nodes={project.nodes}
+          edges={project.edges}
           selectedNodeId={selectedNodeId}
+          selectedEdgeId={selectedEdgeId}
           isConnecting={connectionSourceId !== null}
           onDeleteNode={handleDeleteNode}
+          onDeleteEdge={handleDeleteEdge}
           onStartConnection={handleStartConnection}
         />
       </div>
@@ -194,9 +242,11 @@ function App() {
         nodes={project.nodes}
         edges={project.edges}
         selectedNodeId={selectedNodeId}
+        selectedEdgeId={selectedEdgeId}
         connectionSourceId={connectionSourceId}
-        onSelectNode={setSelectedNodeId}
+        onSelectNode={selectNode}
         onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
         onBackgroundClick={handleBackgroundClick}
         onMoveNode={handleMoveNode}
       />

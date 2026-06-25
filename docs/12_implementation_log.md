@@ -710,3 +710,86 @@ Results:
   - While connecting, dragging the source node does not move it.
   - Clicking the source node again cancels (no edge created).
   - Clicking empty canvas space cancels (no edge, selection preserved).
+
+## 2026-06-21: Phase 7.5 - Edge selection and delete
+
+### Summary
+
+Clicking an edge on the canvas now selects it; the Inspector shows the
+connection's basic info (from -> to, transition type, fade duration) and a
+"Delete connection" button that removes just that edge. Node and edge selection
+are mutually exclusive. Editing an edge is not part of this phase.
+
+### Files Modified
+
+* `src/App.tsx` - new `selectedEdgeId` state; `selectNode` / `selectEdge`
+  wrappers that keep node and edge selection exclusive; `handleEdgeClick`
+  (ignored while connecting); `handleDeleteEdge`. `handleDeleteNode` and
+  `handleBackgroundClick` now also clear the edge selection. JSON import clears
+  `selectedNodeId`, `selectedEdgeId`, and `connectionSourceId`.
+* `src/components/EdgeView.tsx` - renders a wide transparent "hit line" on top
+  of the visible line; clicking it stops propagation and calls `onSelect`. The
+  visible line gets a `selected` style when chosen.
+* `src/components/NodeCanvas.tsx` - passes `selectedEdgeId` and `onEdgeClick` to
+  each `EdgeView`.
+* `src/components/InspectorPanel.tsx` - shows the edge view (read-only info +
+  Delete connection) when an edge is selected; otherwise the node view; the
+  empty placeholder now reads "Select a node or connection".
+* `src/index.css` - `.edge-hit` (transparent, `stroke-width: 12`,
+  `pointer-events: stroke`), `.edge-line.selected` (accent, thicker), the
+  visible `.edge-line` set to `pointer-events: none`, and `.delete-edge-button`.
+
+### Files Intentionally Not Modified
+
+* `src/domain/types.ts`, `mockProject.ts` - no data-model change.
+* `src/components/TrackNode.tsx` - node behavior is unchanged.
+
+### SVG Hit Area
+
+* `.edge-layer` stays `pointer-events: none` so the SVG never blocks node
+  clicks; only the per-edge hit line opts back in.
+* The visible `.edge-line` is `pointer-events: none`; a separate transparent
+  `.edge-hit` line (12px wide, `pointer-events: stroke`) catches the click, so
+  the thin 2px edge is easy to hit.
+* Verified in the browser that `document.elementFromPoint` at the edge midpoint
+  returns the `.edge-hit` element and selecting it works.
+
+### State and Data Flow
+
+* `App` owns `selectedNodeId` and `selectedEdgeId`; `selectNode` / `selectEdge`
+  always null the other, so at most one is set.
+* Edge click: `EdgeView` stops propagation (so it never reaches the canvas
+  background) and calls `onEdgeClick` -> `handleEdgeClick`. While connecting,
+  `handleEdgeClick` returns immediately (no selection).
+* Delete: `handleDeleteEdge` filters the one edge out of `project.edges` and
+  clears `selectedEdgeId`.
+
+### Out of Scope (deferred to later phases)
+
+* Editing an edge: `transitionType`, `fadeDurationSec`, and `note` editing.
+* Duplicate-edge and self-loop handling (unchanged from Phase 7).
+* Audio playback and crossfade.
+
+### Verification
+
+```
+npm run build   # tsc -b && vite build
+npm run lint    # eslint .
+npm run test    # vitest run
+npm run dev     # manual check in the browser
+```
+
+Results:
+
+* `npm run build`: passed (0 errors).
+* `npm run lint`: passed (no warnings, no errors).
+* `npm run test`: passed (5 existing storage tests still green).
+* `npm run dev`: verified in the browser:
+  - Clicking the edge selects it (accent highlight) and shows the connection
+    info + Delete connection; any selected node is deselected.
+  - Clicking a node deselects the edge (reverse exclusivity).
+  - Clicking empty canvas space clears the edge selection.
+  - Delete connection removes only that edge; both nodes remain.
+  - Phase 7 regression: the Start Connection flow still creates edges, and
+    clicking an edge while in connection mode does nothing (and does not cancel
+    the connection).

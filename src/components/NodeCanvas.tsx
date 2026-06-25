@@ -14,6 +14,9 @@
 // connection mode: the source node is highlighted and dragging is disabled so a
 // node click can complete the connection. Clicks go through onNodeClick (nodes)
 // and onBackgroundClick (empty space) so App can branch on the current mode.
+//
+// Phase 7.5: edges are selectable. Each EdgeView gets isSelected and an
+// onSelect that reports the edge id up to App via onEdgeClick.
 
 import { useRef } from "react";
 import type { Track, TrackNode as TrackNodeType, TransitionEdge } from "../domain/types";
@@ -25,9 +28,11 @@ type NodeCanvasProps = {
   nodes: TrackNodeType[];
   edges: TransitionEdge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   connectionSourceId: string | null;
   onSelectNode: (id: string) => void;
   onNodeClick: (id: string) => void;
+  onEdgeClick: (id: string) => void;
   onBackgroundClick: () => void;
   onMoveNode: (id: string, x: number, y: number) => void;
 };
@@ -39,9 +44,11 @@ function NodeCanvas({
   nodes,
   edges,
   selectedNodeId,
+  selectedEdgeId,
   connectionSourceId,
   onSelectNode,
   onNodeClick,
+  onEdgeClick,
   onBackgroundClick,
   onMoveNode,
 }: NodeCanvasProps) {
@@ -83,6 +90,8 @@ function NodeCanvas({
               fromNode={fromNode}
               toNode={toNode}
               markerId={ARROW_MARKER_ID}
+              isSelected={edge.id === selectedEdgeId}
+              onSelect={() => onEdgeClick(edge.id)}
             />
           );
         })}
