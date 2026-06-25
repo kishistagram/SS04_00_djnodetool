@@ -9,6 +9,11 @@
 // canvas-relative coordinates via the canvas ref); mouseup ends the drag.
 // A click that actually moved is suppressed so a drag does not also re-run
 // the selection click. EdgeView follows automatically from the new x/y.
+//
+// Phase 7: edge creation. In connection mode (isConnecting) dragging is fully
+// suppressed so a node click can complete the connection. The click is routed
+// through onClickNode, which the parent interprets as "select" in normal mode
+// or "complete connection" in connection mode.
 
 import { useRef } from "react";
 import type { RefObject } from "react";
@@ -19,10 +24,15 @@ type TrackNodeProps = {
   node: TrackNodeType;
   track?: Track;
   isSelected: boolean;
+  // True for the source node while connection mode is active.
+  isConnectionSource: boolean;
+  // True whenever the canvas is in connection mode (any source chosen).
+  isConnecting: boolean;
   // The canvas element, owned by NodeCanvas, used to map mouse coordinates
   // into canvas space. TrackNode never queries the DOM for it directly.
   canvasRef: RefObject<HTMLElement | null>;
   onSelect: () => void;
+  onClickNode: () => void;
   onMove: (x: number, y: number) => void;
 };
 
@@ -30,8 +40,11 @@ function TrackNode({
   node,
   track,
   isSelected,
+  isConnectionSource,
+  isConnecting,
   canvasRef,
   onSelect,
+  onClickNode,
   onMove,
 }: TrackNodeProps) {
   // True once the pointer has actually moved during a drag. Used to suppress
@@ -42,8 +55,12 @@ function TrackNode({
   function handleMouseDown(event: React.MouseEvent) {
     // Only react to the primary (left) button.
     if (event.button !== 0) return;
-    // Don't let this reach the canvas background (which would deselect).
+    // Don't let this reach the canvas background (which would deselect or
+    // cancel a connection).
     event.stopPropagation();
+    // In connection mode, dragging is disabled so the upcoming click can
+    // complete the connection. Do nothing else here.
+    if (isConnecting) return;
     // Select immediately, so starting a drag also selects the node.
     onSelect();
 
@@ -73,9 +90,17 @@ function TrackNode({
     window.addEventListener("mouseup", handleMouseUp);
   }
 
+  const className = [
+    "track-node",
+    isSelected ? "selected" : "",
+    isConnectionSource ? "connection-source" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div
-      className={isSelected ? "track-node selected" : "track-node"}
+      className={className}
       style={{
         left: node.x,
         top: node.y,
@@ -86,7 +111,7 @@ function TrackNode({
       onMouseDown={handleMouseDown}
       onClick={(event) => {
         // Stop the click from reaching the canvas background, which would
-        // otherwise immediately deselect this node.
+        // otherwise deselect this node or cancel a pending connection.
         event.stopPropagation();
         // If this click is the tail end of a drag, ignore it: selection
         // already happened on mousedown, and we don't want drag == click.
@@ -94,7 +119,9 @@ function TrackNode({
           didDragRef.current = false;
           return;
         }
-        onSelect();
+        // Let the parent decide: select (normal mode) or complete the
+        // connection (connection mode).
+        onClickNode();
       }}
     >
       <span className="track-node-label">{node.label}</span>

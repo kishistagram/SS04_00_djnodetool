@@ -7,6 +7,9 @@
 // Phase 4.5: a Delete button is shown only when a node is selected. Clicking
 // it asks the parent (App) to delete that node via onDeleteNode. The fields
 // themselves stay read-only; edge inspection and editing are still out of scope.
+//
+// Phase 7: a "Start Connection" button begins edge creation from the selected
+// node. While connection mode is active it shows a short hint instead.
 
 import type { Track, TrackNode } from "../domain/types";
 
@@ -14,14 +17,18 @@ type InspectorPanelProps = {
   tracks: Track[];
   nodes: TrackNode[];
   selectedNodeId: string | null;
+  isConnecting: boolean;
   onDeleteNode: (nodeId: string) => void;
+  onStartConnection: () => void;
 };
 
 function InspectorPanel({
   tracks,
   nodes,
   selectedNodeId,
+  isConnecting,
   onDeleteNode,
+  onStartConnection,
 }: InspectorPanelProps) {
   const node = nodes.find((n) => n.id === selectedNodeId);
 
@@ -69,6 +76,20 @@ function InspectorPanel({
           )}
         </dd>
       </dl>
+
+      {isConnecting ? (
+        <p className="inspector-hint">
+          Connection mode: click a target node, or click empty space to cancel.
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="start-connection-button"
+          onClick={onStartConnection}
+        >
+          Start Connection
+        </button>
+      )}
 
       <button
         type="button"

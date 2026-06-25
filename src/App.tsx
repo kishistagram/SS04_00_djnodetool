@@ -16,12 +16,20 @@
 // Phase 6: "JSON save/load". The project can be exported to a JSON file and
 // imported back via the Project Toolbar. On a successful import the whole
 // project is replaced and the selection is cleared.
-// Edge creation, audio, and crossfade are not part of these phases.
+//
+// Phase 7: "Edge creation". Selecting a node and clicking "Start Connection"
+// puts the canvas in connection mode; clicking a different node then creates a
+// directed transition edge from the source to the target. Clicking empty space
+// (or the source node) cancels. Audio and crossfade are not part of this phase.
 
 import { useState } from "react";
 // The type and the component are both named TrackNode; alias the type to
 // TrackNodeData here to avoid a naming collision with the component.
-import type { Project, TrackNode as TrackNodeData } from "./domain/types";
+import type {
+  Project,
+  TransitionEdge,
+  TrackNode as TrackNodeData,
+} from "./domain/types";
 import { mockProject } from "./domain/mockProject";
 import { downloadProject, parseProject } from "./storage/projectStorage";
 import TrackLibrary from "./components/TrackLibrary";
@@ -38,6 +46,12 @@ function App() {
 
   // The currently selected node, or null when nothing is selected.
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  // The source node id while the canvas is in connection mode, or null in
+  // normal mode. Connection mode is entered via "Start Connection".
+  const [connectionSourceId, setConnectionSourceId] = useState<string | null>(
+    null,
+  );
 
   // Create a new node from a track and add it to the canvas, then select it.
   function handleAddToCanvas(trackId: string) {
@@ -113,6 +127,48 @@ function App() {
     reader.readAsText(file);
   }
 
+  // Enter connection mode using the currently selected node as the source.
+  function handleStartConnection() {
+    if (selectedNodeId) {
+      setConnectionSourceId(selectedNodeId);
+    }
+  }
+
+  // Handle a click on a node. In connection mode, clicking a different node
+  // creates the edge and returns to normal mode (the source stays selected);
+  // clicking the source node cancels. In normal mode, it selects the node.
+  function handleNodeClick(nodeId: string) {
+    if (connectionSourceId) {
+      if (nodeId !== connectionSourceId) {
+        const newEdge: TransitionEdge = {
+          id: crypto.randomUUID(),
+          fromNodeId: connectionSourceId,
+          toNodeId: nodeId,
+          transitionType: "crossfade",
+          fadeDurationSec: 3,
+        };
+        setProject((current) => ({
+          ...current,
+          edges: [...current.edges, newEdge],
+        }));
+      }
+      // Leave connection mode; keep the source node selected.
+      setConnectionSourceId(null);
+      return;
+    }
+    setSelectedNodeId(nodeId);
+  }
+
+  // Handle a click on the empty canvas background. In connection mode it
+  // cancels the connection; otherwise it clears the selection.
+  function handleBackgroundClick() {
+    if (connectionSourceId) {
+      setConnectionSourceId(null);
+      return;
+    }
+    setSelectedNodeId(null);
+  }
+
   return (
     <div className="app-layout">
       <div className="left-column">
@@ -128,7 +184,9 @@ function App() {
           tracks={project.tracks}
           nodes={project.nodes}
           selectedNodeId={selectedNodeId}
+          isConnecting={connectionSourceId !== null}
           onDeleteNode={handleDeleteNode}
+          onStartConnection={handleStartConnection}
         />
       </div>
       <NodeCanvas
@@ -136,8 +194,10 @@ function App() {
         nodes={project.nodes}
         edges={project.edges}
         selectedNodeId={selectedNodeId}
+        connectionSourceId={connectionSourceId}
         onSelectNode={setSelectedNodeId}
-        onDeselect={() => setSelectedNodeId(null)}
+        onNodeClick={handleNodeClick}
+        onBackgroundClick={handleBackgroundClick}
         onMoveNode={handleMoveNode}
       />
     </div>
