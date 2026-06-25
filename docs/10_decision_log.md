@@ -1021,3 +1021,109 @@ Reason:
 This phase is deliberately limited to selection + delete. The edit form is a
 separate concern for a later phase; the deviation from the UI doc is
 intentional and recorded here.
+
+## 2026-06-21: Phase 8 Implementation Decisions
+
+### Context
+
+Phase 8 implements step 12 (simple audio playback). The goal is to introduce
+the Web Audio API structure with a minimal, audible result, not to manage audio
+files. Per docs/06_audio_engine_requirements.md, audio logic is isolated from
+the UI.
+
+### Decisions
+
+#### 1. Oscillator as a placeholder source (not AudioBuffer yet)
+
+Decision:
+
+The engine plays an `OscillatorNode` for each node instead of decoding
+`node.audioUrl` into an `AudioBuffer`. Each node gets a stable frequency and
+waveform derived from its id.
+
+Reason:
+
+This produces sound immediately with no audio files, no decoding, and no
+copyright/size concerns, so the focus stays on the Web Audio API structure
+(context, source, gain, destination, cleanup). Real audio is a later phase.
+
+#### 2. Single swap point: createSourceForNode
+
+Decision:
+
+All source creation goes through the private `createSourceForNode(context,
+node)`. Today it returns an oscillator. The rest of the engine (wiring, gain
+envelope, start/stop, cleanup) does not depend on the source type.
+
+Reason:
+
+When real audio (e.g. Suno mp3) is added, only this one method changes: build
+an `AudioBufferSourceNode` from `node.audioUrl` when present, and fall back to
+the oscillator otherwise. The UI and domain types stay untouched. This is the
+recorded migration path from the oscillator placeholder to `audioUrl`-based
+`AudioBufferSourceNode` playback.
+
+#### 3. High-level engine API; UI knows nothing about audio internals
+
+Decision:
+
+The engine exposes `playNode(node)`, `stop()`, `dispose()`. `PlayerControls`
+only invokes `onPlay` / `onStop` callbacks wired by `App`; it does not import
+or hold the engine, and never references oscillators/frequencies/waveforms.
+
+Reason:
+
+Keeps audio logic out of React components (a requirement) and makes the future
+source swap invisible to the UI.
+
+#### 4. Lazy engine instance and lazy AudioContext
+
+Decision:
+
+`App` holds `useRef<AudioEngine | null>(null)` and constructs the engine on
+first access. The engine constructor does not open an `AudioContext`; the
+context is created on the first `playNode` call, which happens from a user
+gesture, and is reused afterward.
+
+Reason:
+
+Two levels of laziness: avoid building the engine before it is needed, and
+avoid opening an AudioContext before a user gesture (browser autoplay policy).
+Reusing one context avoids overlapping AudioContexts.
+
+#### 5. dispose() on unmount
+
+Decision:
+
+A `useEffect` cleanup calls `audioEngine.dispose()` (stop + close context) when
+the app unmounts.
+
+Reason:
+
+Releases audio resources explicitly instead of leaking a context, matching the
+"clean up" quality requirement.
+
+#### 6. One voice at a time; short gain envelope
+
+Decision:
+
+Starting playback stops any current sound first (single voice). Start and stop
+use short gain ramps (attack/release) and old nodes are disconnected after the
+release.
+
+Reason:
+
+The MVP plays one node at a time; the ramps avoid clicks, and disconnecting old
+sources prevents them from piling up.
+
+#### 7. Pure sound mapping split out for testing
+
+Decision:
+
+The node -> frequency/waveform mapping lives in `src/audio/nodeSound.ts` as
+pure functions, separate from the Web Audio code, and is unit tested.
+
+Reason:
+
+The Web Audio API is hard to test under jsdom, but the musical mapping is a
+pure function and easy to test, matching the project's test-first preference.
